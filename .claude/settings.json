@@ -9,7 +9,9 @@
       "WebFetch(domain:efacildemais.blogspot.com)",
       "WebFetch(domain:udesenv.com.br)",
       "WebFetch(domain:tdn.totvs.com)",
-      "WebFetch(domain:devforum.totvs.com.br)"
+      "WebFetch(domain:devforum.totvs.com.br)",
+      "Read(//c//**)",
+      "Bash(git config *)"
     ]
   }
 }
