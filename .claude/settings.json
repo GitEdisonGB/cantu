@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell",
+      "WebFetch(domain:centraldeatendimento.totvs.com)",
+      "Bash(gh api *)",
+      "WebFetch(domain:masteradvpl.com.br)",
+      "WebFetch(domain:www.masteradvpl.com.br)",
+      "WebFetch(domain:efacildemais.blogspot.com)",
+      "WebFetch(domain:udesenv.com.br)",
+      "WebFetch(domain:tdn.totvs.com)",
+      "WebFetch(domain:devforum.totvs.com.br)"
+    ]
+  }
+}

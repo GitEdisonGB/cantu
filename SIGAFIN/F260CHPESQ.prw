@@ -1,0 +1,9 @@
+#INCLUDE "PROTHEUS.CH"
+#INCLUDE "TOPCONN.CH" 
+#INCLUDE "RWMAKE.CH"  
+
+
+User Function F260CHPESQ() 
+	lRet := .T. 
+
+Return lRet

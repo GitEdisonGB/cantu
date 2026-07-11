@@ -1,0 +1,79 @@
+{
+	"configurations": [
+		{
+			"type": "totvs_language_web_debug",
+			"request": "launch",
+			"name": "Smart Client Web Debug",
+			"program": "${command:AskForProgramName}",
+			"isMultiSession": true,
+			"enableTableSync": true,
+			"cwb": "${workspaceFolder}"
+		},
+		{
+			"type": "totvs_language_debug",
+			"request": "launch",
+			"name": "Smart Client Debug",
+			"program": "${command:AskForProgramName}",
+			"smartclientBin": "C:\\Totvs Prd-12_1_2310\\smartclient.exe",
+			"cwb": "${workspaceFolder}",
+			"isMultiSession": true,
+			"enableTableSync": true,
+			"extendFeatures": {
+				"charDetails": false
+			}
+		}
+	],
+	"lastPrograms": [
+		{
+			"label": "sigamdi"
+		},
+		{
+			"args": [],
+			"label": "U_IMPPEDNET"
+		},
+		{
+			"label": "U_IMPPDNT3"
+		},
+		{
+			"label": "u_IMPSA2WM"
+		},
+		{
+			"label": "U_IMPPDNT4"
+		},
+		{
+			"label": "U_RJFINP04"
+		},
+		{
+			"label": "U_PEDVEASY"
+		},
+		{
+			"label": "U_BlCliSched"
+		},
+		{
+			"label": "U_MTCONSCH"
+		},
+		{
+			"label": "U_MLFTPSCH"
+		},
+		{
+			"args": [],
+			"label": "U_IntCTe"
+		},
+		{
+			"label": "U_IntCtMdf"
+		},
+		{
+			"args": [],
+			"label": "U_HiveCte"
+		},
+		{
+			"args": [],
+			"label": "U_WFBlCl40"
+		},
+		{
+			"label": "U_HiveCloud"
+		}
+	],
+	"lastProgramExecuted": "U_HiveCte",
+	"lastProgramArguments": []
+}

@@ -1,0 +1,12 @@
+{
+	"folders": [
+		{
+			"name": "fontes-Cantu-bd",
+			"path": "../../.."
+		}
+	],
+	"settings": {
+		"totvsLanguageServer.welcomePage": false,
+		"totvsLanguageServer.editor.linter.includes": "C:\\Users\\ediso\\OneDrive\\tds\\CANTU 2023 BD\\include"
+	}
+}

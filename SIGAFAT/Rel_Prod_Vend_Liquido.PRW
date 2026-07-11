@@ -1,0 +1,3057 @@
+#INCLUDE "MATR310.CH"
+#INCLUDE "PROTHEUS.CH"
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ MATR310  ³ Autor ³ Nereu Humberto Junior ³ Data ³ 03/07/06 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Relacao dos Produtos Vendidos                               ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ Generico                                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+User Function MATR310A()
+Local oReport     
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+//³Chama função para monitor uso de fontes customizados³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+U_USORWMAKE(ProcName(),FunName())
+
+/*If FindFunction("TRepInUse") .And. TRepInUse()
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Interface de impressao                                                  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	alert("Usa a funcao nova")
+	oReport:= ReportDef()
+	oReport:PrintDialog()
+Else*/
+	U_MATR310R3A()
+//EndIf
+
+Return
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ReportDef ³ Autor ³Nereu Humberto Junior  ³ Data ³03.07.2006³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³A funcao estatica ReportDef devera ser criada para todos os ³±±
+±±³          ³relatorios que poderao ser agendados pelo usuario.          ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³ExpO1: Objeto do relatório                                  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ReportDef()
+
+Local oReport 
+Local oSection1
+Local oCell         
+Local oBreak
+Local cTamVlr := TamSX3('D2_CUSTO1')[1]
+Local cPictVl  := X3Picture('D2_CUSTO1')
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Funcao utilizada para verificar a ultima versao dos fontes      ³
+//³ SIGACUS.PRW, SIGACUSA.PRX e SIGACUSB.PRX, aplicados no rpo do   |
+//| cliente, assim verificando a necessidade de uma atualizacao     |
+//| nestes fontes. NAO REMOVER !!!							        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+IF !(FindFunction("SIGACUS_V") .and. SIGACUS_V() >= 20050512)
+	Aviso("Atencao","Atualizar patch do programa SIGACUS.PRW !!!",{"Ok"})
+	Return
+EndIf
+IF !(FindFunction("SIGACUSA_V") .and. SIGACUSA_V() >= 20050512)
+	Aviso("Atencao","Atualizar patch do programa SIGACUSA.PRX !!!",{"Ok"})
+	Return
+EndIf
+If !(FindFunction("SIGACUSB_V") .And. SIGACUSB_V() >= 20060915)
+	Aviso("Atencao","Atualizar patch do programa SIGACUSB.PRX !!!",{"Ok"})
+	Return
+EndIf
+
+AjustaSX1()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Criacao do componente de impressao                                      ³
+//³                                                                        ³
+//³TReport():New                                                           ³
+//³ExpC1 : Nome do relatorio                                               ³
+//³ExpC2 : Titulo                                                          ³
+//³ExpC3 : Pergunte                                                        ³
+//³ExpB4 : Bloco de codigo que sera executado na confirmacao da impressao  ³
+//³ExpC5 : Descricao                                                       ³
+//³                                                                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+oReport:= TReport():New("MATR310",STR0001,"MTR310", {|oReport| ReportPrint(oReport)},STR0002+" "+STR0003+" "+STR0004) //"Relacao dos Produtos Vendidos"##"Este relatorio apresenta o valor total das vendas de cada produto,"##"calculando sua participacao dentro do total das vendas.Mostra tam-"##"bem o custo de cada venda e o custo de reposicao do produto."
+oReport:SetLandscape()    
+oReport:SetTotalInLine(.F.)
+
+Pergunte("MTR310",.F.)
+
+oSection1 := TRSection():New(oReport,STR0001,{"SD2","SB1"}) //"Relacao dos Produtos Vendidos"
+oSection1:SetTotalInLine(.F.)
+oSection1:SetHeaderPage(.F.)
+
+TRCell():New(oSection1,"cTipant"	,"   ",STR0019					,"@!"						,2			,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oSection1,"cCodAnt"	,"   ",STR0020					,"@!"						,15			,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oSection1,"B1_DESC"	,"SB1",/*Titulo*/				,/*Picture*/				,40			,/*lPixel*/,/*{|| code-block de impressao }*/)
+TRCell():New(oSection1,"nAp1"		,"   ",STR0021					,PesqPictQt("D2_QUANT",16)	,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"B1_UM"		,"SB1",/*Titulo*/				,/*Picture*/				,/*Tamanho*/,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT")
+TRCell():New(oSection1,"nAp2"		,"   ",STR0022+CRLF+STR0023		,/*Picture*/				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nCusto"		,"   ",STR0024+CRLF+STR0025		,/*Picture*/				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nAp5"		,"   ",STR0026+CRLF+STR0027		,/*Picture*/				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nAp3"		,"   ",STR0028+CRLF+STR0029		,/*Picture*/				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nImpnFat"	,"   ",STR0030+CRLF+STR0031		,/*Picture*/				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nValFat"	,"   ",STR0026+"-"+CRLF+STR0032,/*Picture*/					,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nMargem"	,"   ",STR0033					,"9999999.9"				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nMixMar"	,"   ",STR0034+CRLF+STR0035		,"9999.9"					,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nMix"		,"   ",STR0034					,"9999.9"					,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nAp4"		,"   ",STR0036+CRLF+STR0037		,/*Picture*/				,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nVar"		,"   ",STR0038					,"9999.9"					,cTamVlr	,/*lPixel*/,/*{|| code-block de impressao }*/,,,"RIGHT") 
+TRCell():New(oSection1,"nVds","   " ,"Val. Liq.",/*Picture*/,cTamVlr,/*lPixel*/,/*{|| code-block de impressao }*/) 
+//TRCell():New(oSection1,"nVlc","   ",STR0026+CRLF+STR0027,/*Picture*/,cTamVlr,/*lPixel*/,/*{|| code-block de impressao }*/) 
+
+oBreak := TRBreak():New(oSection1,oSection1:Cell("cTipant"),STR0012,.F.)
+
+TRFunction():New(oSection1:Cell("nAp1"),"CALC_AP1","SUM",oBreak,"",PesqPictQt("D2_QUANT",16),/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nAp2"),"CALC_AP2","SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nCusto"),NIL,"ONPRINT",oBreak,"",cPictVl,{|| oSection1:GetFunction("CALC_AP2"):GetLastValue()/oSection1:GetFunction("CALC_AP1"):GetLastValue()},.F.,.T.) 
+TRFunction():New(oSection1:Cell("nAp5"),NIL,"SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nAp3"),"CALC_AP3","SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nImpnFat"),NIL,"SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nValFat"),NIL,"SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nMargem"),NIL,"ONPRINT",oBreak,"","9999999.9",{|| 100*((oSection1:GetFunction("CALC_AP3"):GetLastValue()-oSection1:GetFunction("CALC_AP2"):GetLastValue())/oSection1:GetFunction("CALC_AP3"):GetLastValue())},.F.,.T.) 
+TRFunction():New(oSection1:Cell("nMixMar"),NIL,"SUM",oBreak,"","9999.9",/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nMix"),NIL,"SUM",oBreak,"","9999.9",/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nAp4"),"CALC_AP4","SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+TRFunction():New(oSection1:Cell("nVar"),NIL,"ONPRINT",oBreak,"","9999.9",{|| (100*oSection1:GetFunction("CALC_AP4"):GetLastValue()/oSection1:GetFunction("CALC_AP2"):GetLastValue())-100},.F.,.T.) 
+TRFunction():New(oSection1:Cell("nVds"),NIL,"SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.) 
+//TRFunction():New(oSection1:Cell("nVlc"),NIL,"SUM",oBreak,"",cPictVl,/*uFormula*/,.F.,.T.)  
+
+Return(oReport)
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Programa  ³ReportPrin³ Autor ³Nereu Humberto Junior  ³ Data ³21.06.2006³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³A funcao estatica ReportDef devera ser criada para todos os ³±±
+±±³          ³relatorios que poderao ser agendados pelo usuario.          ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³ExpO1: Objeto Report do Relatório                           ³±±
+±±³          ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³   DATA   ³ Programador   ³Manutencao efetuada                         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³          ³               ³                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function ReportPrint(oReport)
+
+Local oSection1:= oReport:Section(1) 
+Local lDevolucao := .F.
+Local nAp1,nAp1Cus,nAp2,nAp3,nAp4,nAp5,nVds
+Local cCodAnt := "",cTipant := "",nTotFat:=0,nTotLuc:=0
+Local nMoeda 
+Local cArqSD1:=cArqSD2:=cArqTrab:=cArqTrb2:=cKeySD2:=sKeySD1:=cFilSD1:=cFilSD2:=""
+Local cEstoq := If( (mv_par12 == 1),"S",If( (mv_par12 == 2),"N","SN" ) )
+Local cDupli := If( (mv_par13 == 1),"S",If( (mv_par13 == 2),"N","SN" ) )
+Local nValCus := 0
+Local aTam:={}
+Local aStruct := {}
+Local nIndSd1:= 0
+Local nCpo
+Local aImpVar := {}
+Local cFormula := ""
+Local cAliasTop := "SD2"
+#IFNDEF TOP
+	Local cCondicao := ""
+#ENDIF
+Private lVEIC	:= UPPER(GETMV("MV_VEICULO"))=="S"
+Private aCampos := {}
+Private cCampImp
+
+nMoeda := mv_par09
+oReport:SetTitle( oReport:Title()+" - "+GetMv("MV_SIMB"+Alltrim(Str(nMoeda))))
+
+If mv_par15 == 1
+	cFormula := "Formula da Margem" +" => (( B - A ) / B ) * 100"
+Else                                                             
+	cFormula := "Formula da Margem" + " =>  C = B - "+Str(mv_par16,5,2)+"%  => (( C - A ) / C ) * 100"
+EndIf
+
+dbSelectArea("SF4")
+dbSetOrder(1)
+
+dbSelectArea("SF2")
+dbSetOrder(1)
+
+dbSelectArea("SF1")
+dbSetOrder(1)
+
+dbSelectArea("SD2")
+dbSetOrder(1)
+
+dbSelectArea("SD1")
+dbSetOrder(1)
+
+dbSelectArea("SB1")
+dbSetOrder(1)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Cria arquivo temporario para impressao                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aTam := TamSx3("D2_FILIAL")
+Aadd(aCampos,{"D2_FILIAL","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_COD")
+Aadd(aCampos,{"D2_COD","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_LOCAL")
+Aadd(aCampos,{"D2_LOCAL","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_SERIE")
+Aadd(aCampos,{"D2_SERIE","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TES")
+Aadd(aCampos,{"D2_TES","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TP")
+Aadd(aCampos,{"D2_TP","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_EMISSAO")
+Aadd(aCampos,{"D2_EMISSAO","D",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TIPO")
+Aadd(aCampos,{"D2_TIPO","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_DOC")
+Aadd(aCampos,{"D2_DOC","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_QUANT")
+Aadd(aCampos,{"D2_QUANT","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TOTAL")
+Aadd(aCampos,{"D2_TOTAL","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_CUSTO"+Str(mv_par09,1))
+Aadd(aCampos,{"D2_CUSTO","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_VALIPI")
+Aadd(aCampos,{"D2_VALIPI","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_VALICM")
+Aadd(aCampos,{"D2_VALICM","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_ITEM")
+Aadd(aCampos,{"D2_ITEM","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_ORIGLAN")
+Aadd(aCampos,{"D2_ORIGLAN","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_CLIENTE")
+Aadd(aCampos,{"D2_CLIENTE","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_LOJA")
+Aadd(aCampos,{"D2_LOJA","C",aTam[1],aTam[2]})
+
+If cPaisLoc<>"BRA"  
+	aStruct:=SD2->(dbStruct())
+	For nCpo := 1 to Len(aStruct)
+		If Substr(aStruct[nCpo][1],1,9)=="D2_VALIMP" .or. Substr(aStruct[nCpo][1],1,9)=="D2_BASIMP" 
+			aTam := TamSx3(aStruct[nCpo][1])
+			Aadd(aCampos,{aStruct[nCpo][1],"N",aTam[1],aTam[2]})
+			Aadd(aImpVar,aStruct[nCpo][1])
+		EndIf
+	Next
+EndIf
+
+cArqTrab := CriaTrab(aCampos)
+Use &cArqTrab Alias TRB New Exclusive
+cArqTrb2 := CriaTrab( NIL,.F. )
+IndRegua("TRB",cArqTrb2,"D2_FILIAL+D2_TP+D2_COD+D2_DOC+D2_SERIE",,cFilSD2,STR0018) //"Selecionando Registros..."
+
+If (mv_par11 # 3)
+
+	dbSelectArea( "SD1" )
+	cArqSD1 := CriaTrab( NIL,.F. )
+	cKeySD1 := "D1_FILIAL+D1_COD+D1_SERIORI+D1_NFORI+D1_ITEMORI"
+
+	cFilSD1 := "D1_FILIAL = '" + xFilial("SD1") + "'"
+	cFilSD1 += " .And. D1_TIPO = 'D'"
+	cFilSD1 += " .And. D1_COD >= '" + MV_PAR07 + "'"
+	cFilSD1 += " .And. D1_COD <= '" + MV_PAR08 + "'"
+	cFilSD1 += " .And. D1_LOCAL >= '" + MV_PAR01 + "'"
+	cFilSD1 += " .And. D1_LOCAL <= '" + MV_PAR02 + "'"
+	cFilSD1 += " .And. DTOS(D1_DTDIGIT) >= '" + DTOS(MV_PAR03) + "'"
+	cFilSD1 += " .And. DTOS(D1_DTDIGIT) <= '" + DTOS(MV_PAR04) + "'"
+	cFilSD1 += " .And. D1_TP >= '" + MV_PAR05 + "'"
+	cFilSD1 += " .And. D1_TP <= '" + MV_PAR06 + "'"
+
+	IndRegua("SD1",cArqSD1,cKeySD1,,cFilSD1,STR0010)			//"Selecionando Registros..."
+	
+	nIndSd1:=RetIndex("SD1")
+	#IFNDEF TOP
+		dbSetIndex(cArqSd1+OrdBagExt())
+	#ENDIF
+	dbSetOrder(nIndSd1 + 1)
+	dbGoTop()
+
+EndIf
+
+dbSelectArea("SD2")
+dbSetOrder(2)
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Filtragem do relatório                                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+#IFDEF TOP
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Transforma parametros Range em expressao SQL                            ³	
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	MakeSqlExpr(oReport:uParam)
+	
+	cAliasTop := GetNextAlias()    
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Query do relatório da secao 1                                           ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:Section(1):BeginQuery()	
+	
+	cSelect := "%"
+	cSelect += "D2_CUSTO"+Str(mv_par09,1)
+	//Adicao a query dos campos de impostos 
+	If cPaisLoc<>"BRA"
+		For nCpo := 1 to Len(aImpVar)
+			cSelect += ","+aImpVar[nCpo]
+		Next
+	Endif	
+	cSelect += "%"
+	
+	cWhere := "%"
+	IF ! lVeic
+		cWhere += " AND D2_COD >= '" + MV_PAR07 + "'"
+		cWhere += " AND D2_COD <= '" + MV_PAR08 + "'"
+	Endif 
+	If mv_par17 == 2
+		cWhere += " And D2_TIPO <> 'D'"
+	Endif
+		
+	//Adicao de filtro para nao considerar REMITOS
+	If cPaisLoc<>"BRA"
+		cWhere += " AND NOT ("+IsRemito(2,"D2_TIPODOC")+")"
+	Endif		
+	// filtro do vendedor (entre)
+	cWhere += "%"
+
+	BeginSql Alias cAliasTop
+
+		SELECT D2_FILIAL,D2_TP,D2_COD,D2_DOC,D2_SERIE,D2_LOCAL,D2_TES,D2_EMISSAO,D2_TIPO,D2_QUANT, 
+ 		       D2_TOTAL,D2_VALIPI,D2_VALICM,D2_ORIGLAN,D2_CLIENTE,D2_ITEM,D2_LOJA,%Exp:cSelect%	 	
+				
+		FROM %table:SD2% SD2
+			
+		WHERE	D2_FILIAL  = %xFilial:SD2% AND
+				D2_TP >= %Exp:mv_par05% AND
+				D2_TP <= %Exp:mv_par06%AND
+				D2_LOCAL >= %Exp:mv_par01% AND
+				D2_LOCAL <= %Exp:mv_par02%AND				
+				D2_EMISSAO  >= %Exp:Dtos(mv_par03)% AND 
+				D2_EMISSAO  <= %Exp:Dtos(mv_par04)% AND 
+				SD2.%NotDel%	
+				%Exp:cWhere%
+				
+		ORDER BY 1,2,3
+	
+	EndSql 
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Metodo EndQuery ( Classe TRSection )                                    ³
+	//³                                                                        ³
+	//³Prepara o relatório para executar o Embedded SQL.                       ³
+	//³                                                                        ³
+	//³ExpA1 : Array com os parametros do tipo Range                           ³
+	//³                                                                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	oReport:Section(1):EndQuery(/*Array com os parametros do tipo Range*/)
+	
+#ELSE
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³Transforma parametros Range em expressao Advpl                          ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	MakeAdvplExpr(oReport:uParam)
+
+	cCondicao := 'D2_FILIAL == "'+xFilial("SD2")+'".And.' 
+	cCondicao += 'D2_TP >= "'+mv_par05+'".And.D2_TP <="'+mv_par06+'"'
+	IF ! lVeic
+		cCondicao += ' .And. D2_COD >= "' + MV_PAR07 + '"'
+		cCondicao += ' .And. D2_COD <= "' + MV_PAR08 + '"'
+	Endif
+	cCondicao += ' .And. D2_LOCAL >= "'+mv_par01+'".And.D2_LOCAL <="'+mv_par02+'"'
+	cCondicao += ' .And. Dtos(D2_EMISSAO) >= "'+Dtos(mv_par03)+'".And.Dtos(D2_EMISSAO) <="'+Dtos(mv_par04)+'"'
+	If mv_par17 == 2
+		cCondicao += ' .And. D2_TIPO # "D"'
+	Endif	
+	
+	//Adicao de filtro para nao considerar REMITOS
+	If cPaisLoc<>"BRA"
+		cCondicao += " .And. .Not. ("+IsRemito(2,"D2_TIPODOC")+")"
+	Endif
+	
+	oReport:Section(1):SetFilter(cCondicao,IndexKey())
+
+#ENDIF		
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³Inicio da impressao do fluxo do relatório                               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea(cAliasTop)
+oReport:SetMeter(SD2->(LastRec()))
+
+GeraTrab("SD2",cAliasTop,.T.)
+
+SB1->(dbSetOrder(1))
+
+If mv_par11 != 3
+	dbSelectArea("SD1")
+	dbGoTop()
+	GeraTrab("SD1",,.T.)
+EndIf
+
+dbSelectArea("TRB")
+dbGoTop()
+
+While !oReport:Cancel() .And. !TRB->(Eof())
+	
+	If oReport:Cancel()
+		Exit
+	EndIf
+	
+	oReport:IncMeter()
+	
+	If !(cCodAnt == TRB->D2_COD)
+		cCodAnt    := TRB->D2_COD
+		oSection1:Cell("cCodAnt"):SetValue(cCodAnt)
+		lDevolucao := .T.
+	EndIf	
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+	//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !(TRB->D2_ORIGLAN == "LF") .And. AvalTes(TRB->D2_TES,cEstoq,cDupli)
+		
+		SB1->(dbSeek(xFilial("SB1") + TRB->D2_COD))
+		
+		If TRB->D2_TIPO != "D"
+			If (mv_par09 > 1)
+				nValCus := TRB->D2_CUSTO
+				If nValCus > 0
+					nTotLuc += nValCus
+				Else
+					nTotLuc += xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				EndIf
+			Else
+				nTotLuc += TRB->D2_CUSTO
+			EndIf
+			If cPaisLoc<>"BRA"
+				nTotFat +=  ValSD2()
+			Else
+				If (mv_par09 > 1)
+					nTotFat += xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				Else
+					nTotFat += ValSD2()
+				EndIf
+			EndIf	
+		Else
+			If (mv_par09 > 1)
+				nValCus := TRB->D2_CUSTO
+				If nValCus > 0
+					nTotLuc -= nValCus
+				Else
+					nTotLuc -= xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				EndIf
+			Else
+				nTotLuc -= TRB->D2_CUSTO
+			EndIf	
+			If cPaisLoc<>"BRA"
+				nTotFat -=  ValSD2()
+			Else
+				If (mv_par09 > 1)
+					nTotFat -= xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				Else
+					nTotFat -= ValSD2()
+				EndIf
+			EndIf
+		Endif
+		Do Case
+		Case (mv_par11 == 1)
+			DbSelectArea( "SD1" )
+			If DbSeek( xFilial("SD1") + TRB->D2_COD + TRB->D2_SERIE + TRB->D2_DOC + TRB->D2_ITEM,.F. )
+				While !SD1->(Eof()) .And. (SD1->D1_COD == TRB->D2_COD) .And. (TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM == SD1->D1_SERIORI+SD1->D1_NFORI+AllTrim(SD1->D1_ITEMORI))
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+					//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !(D1_ORIGLAN == "LF") .And. AvalTes(D1_TES,cEstoq,cDupli)
+
+						If (mv_par09 > 1)
+							nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+							if nValCus > 0
+								nTotLuc -= nValCus
+							else
+								nTotLuc -= xMoeda( D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+							endif
+						Else
+							nTotLuc -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+						EndIf
+
+						If (mv_par09 > 1)
+							nTotFat -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+						Else
+							nTotFat -= ValSD1()
+						EndIf
+					EndIf
+					dbSelectArea('SD1')
+					DbSkip( 1 )
+				EndDo
+			EndIf
+		Case (mv_par11 == 2) .And. lDevolucao
+			DbSelectArea( "SD1" )
+			If DbSeek( xFilial("SD1") + TRB->D2_COD + TRB->D2_SERIE + TRB->D2_DOC,.F. )
+				While !SD1->(Eof()) .And. (SD1->D1_COD == TRB->D2_COD) .And. (TRB->D2_SERIE+TRB->D2_DOC == SD1->D1_SERIORI+SD1->D1_NFORI)
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+					//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !(D1_ORIGLAN == "LF") .And. AvalTes(D1_TES,cEstoq,cDupli)
+							
+						If (mv_par09 > 1)
+							nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+							if nValCus > 0
+								nTotLuc -= nValCus
+							else
+								nTotLuc -= xMoeda( D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+							endif
+						Else
+							nTotLuc -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+						EndIf
+						
+						If (mv_par09 > 1)
+							nTotFat -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+						Else
+							nTotFat -= ValSD1()
+						EndIf
+					EndIf
+					dbSelectArea('SD1')
+					DbSkip( 1 )
+				EndDo
+			EndIf
+		EndCase
+	EndIf
+	
+	DbSelectArea( "TRB" )
+	DbSkip( 1 )
+	lDevolucao := !(TRB->D2_TIPO == 'D')
+EndDo
+
+nTotLuc := c310AbaVal(nTotFat)-nTotLuc
+
+TRB->(DbGoTop())
+
+cCodAnt := ""
+
+oSection1:Init() 
+dbSelectArea("TRB")
+While !oReport:Cancel() .And. !TRB->(Eof())
+	
+	If oReport:Cancel()
+		Exit
+	EndIf
+	
+	cTipant := TRB->D2_TP
+	oSection1:Cell("cTipant"):SetValue(cTipant)
+	
+	While !oReport:Cancel() .And. !TRB->(Eof()) .And. (TRB->D2_TP == cTipant)
+		
+		If oReport:Cancel()
+			Exit
+		EndIf
+		
+		SB1->(DbSeek( xFilial("SB1") + TRB->D2_COD, .F. ))
+		
+		nAp1 	:= 0
+		nAp1Cus	:= 0
+		nAp2	:= 0
+		nAp3	:= 0
+		nAp4	:= 0
+		nAp5	:= 0
+		nVds    := 0
+		nAux    := 0
+		If !(cCodAnt == TRB->D2_COD)
+			cCodAnt    := TRB->D2_COD
+			oSection1:Cell("cCodAnt"):SetValue(cCodAnt)
+			lDevolucao := !(TRB->D2_TIPO == 'D')
+		EndIf
+		
+		While !oReport:Cancel() .And. !TRB->(Eof()) .And.  TRB->D2_TP+TRB->D2_COD == cTipant+cCodAnt
+			
+			If oReport:Cancel()
+				Exit
+			EndIf
+	
+			oReport:IncMeter()
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+			//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If !(TRB->D2_ORIGLAN == "LF") .And. AvalTes(TRB->D2_TES,cEstoq,cDupli)
+				If !(TRB->D2_TIPO == "D")
+					If AvalTes(TRB->D2_TES,"S")
+						nAp1Cus+=TRB->D2_QUANT
+					Endif
+					nAp1 += TRB->D2_QUANT
+					If (mv_par09 > 1)
+						nValCus := TRB->D2_CUSTO
+						if nValCus > 0
+							nAp2 += nValCus
+						else
+							nAp2 += xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						endif
+					Else
+						nAp2 += TRB->D2_CUSTO
+					EndIf
+					
+					If (mv_par09 > 1)
+						nAp3 += Iif(cPaisLoc<>"BRA",ValSD2(),xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO ))
+						nAux := Iif(cPaisLoc<>"BRA",ValSD2(),xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO ))
+						nVds += fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+						If cPaisLoc=="BRA"
+							nAp5 += xMoeda( TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						Else
+							nAp5 += SumTaxSD2(.F.)
+						EndIf
+					Else
+						nAp3 += ValSD2()
+						nAux := ValSD2()
+						nVds += fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+						If cPaisLoc=="BRA"
+							nAp5 += TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)
+						Else
+							nAp5 += SumTaxSD2(.F.)
+						EndIf
+					EndIF
+					
+					If mv_par09 > 1
+						nAp4 += (TRB->D2_QUANT*xMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+						Else
+						If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+							nAp4 += (TRB->D2_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+						Else
+							nAp4 += (TRB->D2_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+						EndIf
+					EndIF
+				Else   
+					If AvalTes(TRB->D2_TES,"S")
+						nAp1Cus-=TRB->D2_QUANT
+					Endif   
+					nAp1 -= TRB->D2_QUANT
+					If (mv_par09 > 1)
+						nValCus := TRB->D2_CUSTO
+						if nValCus > 0
+							nAp2 -= nValCus
+						else
+							nAp2 -= xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						endif
+					Else
+						nAp2 -= TRB->D2_CUSTO
+					EndIf
+					
+					If (mv_par09 > 1)
+						nAp3 -= xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						nAux := xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+						
+						If cPaisLoc=="BRA"
+							nAp5 -= xMoeda( TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+							
+						Else
+							nAp5 -=  SumTaxSD2(.F.)
+						EndIf
+					Else
+						nAp3 -= ValSD2()
+						nAux := ValSD2()
+						nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+						If cPaisLoc=="BRA"
+							nAp5 -= TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)
+						Else
+							nAp5 -= SumTaxSD2(.F.)
+						EndIf
+					EndIF
+					
+					If mv_par09 > 1
+						nAp4 -= (TRB->D2_QUANT*xMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+					Else
+						If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+							nAp4 -= (TRB->D2_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+						Else
+							nAp4 -= (TRB->D2_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+						EndIf
+					EndIF
+				Endif
+				Do Case
+				Case (mv_par11 == 1)
+					DbSelectArea( "SD1" )
+					If DbSeek( xFilial("SD1") + TRB->D2_COD+TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM,.F. )
+						While !SD1->(Eof()) .And. (D1_COD == cCodAnt) .And. (TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM == SD1->D1_SERIORI+SD1->D1_NFORI+AllTrim(SD1->D1_ITEMORI))
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+							//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If !(SD1->D1_ORIGLAN == "LF") .And. AvalTes(SD1->D1_TES,cEstoq,cDupli)
+								If AvalTes(D1_TES,"S")
+									nAp1Cus -= D1_QUANT
+								Endif
+								nAp1 -= SD1->D1_QUANT
+								If (mv_par09 > 1)
+									nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+									if nValCus > 0
+										nAP2 -= nValCus
+									else
+										nAp2 -= xMoeda(SD1->D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),nMoeda, SD1->D1_DTDIGIT )
+									endif
+								Else
+									nAp2 -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+								EndIf
+
+								If (mv_par09 > 1)
+									nAp3 -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SD1->D1_DTDIGIT )
+									nAux := xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SD1->D1_DTDIGIT )
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+									If cPaisLoc = "BRA"
+										nAp5 -= xMoeda( SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SD1->D1_DTDIGIT )
+									Else
+										nAp5 -= SumTaxSD1(.F.)
+									EndIf
+								Else
+									nAp3 -= ValSD1()
+									nAux := ValSD1()
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+									If cPaisLoc="BRA"
+										nAp5 -= SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0)
+									Else
+										nAp5 -= SumTaxSD1(.F.)
+									EndIf
+								EndIF
+
+								If mv_par09 > 1
+									nAp4 -= (SD1->D1_QUANT*xMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+								Else
+									If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+										nAp4 -= (SD1->D1_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+									Else
+										nAp4 -= (SD1->D1_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+									EndIf
+								EndIF
+							EndIf
+							dbSelectArea('SD1')
+							DbSkip( 1 )
+						EndDo
+					EndIf
+				Case (mv_par11 == 2) .And. lDevolucao
+			 		DbSelectArea( "SD1" )
+					If DbSeek( xFilial("SD1") +TRB->D2_COD+TRB->D2_SERIE+TRB->D2_DOC,.F. )
+						While !SD1->(Eof()) .And. (D1_COD == cCodAnt) .And. (TRB->D2_SERIE+TRB->D2_DOC == SD1->D1_SERIORI+SD1->D1_NFORI)
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+							//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If !(D1_ORIGLAN == "LF") .And. AvalTes(D1_TES,cEstoq,cDupli)
+								If AvalTes(D1_TES,"S")
+									nAp1Cus -= D1_QUANT
+								Endif
+								nAp1 -= D1_QUANT
+								If (mv_par09 > 1)
+									nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+									if nValCus > 0
+										nAp2 -= nValCus
+									else
+										nAp2 -= xMoeda( D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+									endif
+								Else
+									nAp2 -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+								EndIf
+								
+								If (mv_par09 > 1)
+									nAp3 -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+									nAux := xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+									If cPaisLoc = "BRA"
+										nAp5 -= xMoeda( SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),nMoeda,D1_DTDIGIT )
+										
+									Else
+										nAp5 -=  SumTaxSD1(.F.)
+									EndIf
+								Else
+									nAp3 -= ValSD1()
+									nAux := ValSD1()
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)							
+
+									If cPaisLoc = "BRA"
+										nAp5 -= SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0)
+									Else
+										nAp5 -= SumTaxSD1(.F.)
+									EndIf
+								EndIF
+									
+								If mv_par09 > 1
+									nAp4 -= (D1_QUANT*xMoeda( RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+								Else
+									If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+										nAp4 -= (D1_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+									Else
+										nAp4 -= (D1_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+									EndIf
+								EndIF
+							EndIf
+							dbSelectArea('SD1')
+							DbSkip( 1 )
+						EndDo
+					EndIf
+				EndCase
+				
+			EndIf
+			DbSelectArea( "TRB" )
+			dbSkip()
+			lDevolucao := !(TRB->D2_TIPO == 'D')
+		EndDo
+
+		If nAp1 != 0 .Or. nAp2 != 0 .Or. nAp3 != 0 .Or. nAp4 != 0 .And. lDevolucao
+			
+			oSection1:Cell("nAp2"):SetPicture(TM(nAp2,14))			
+			oSection1:Cell("nCusto"):SetPicture(TM(nAp2,14))			
+			oSection1:Cell("nAp5"):SetPicture(TM(nAp5,14))			
+			oSection1:Cell("nAp3"):SetPicture(TM(nAp3,14))			
+			oSection1:Cell("nImpnFat"):SetPicture(TM(nAp5,12))			
+			oSection1:Cell("nValFat"):SetPicture(TM(nAp3,14))			
+			oSection1:Cell("nAp4"):SetPicture(TM(nAp4,14))			
+			
+			oSection1:Cell("nVds"):SetPicture(TM(nVds,14))			
+			
+			
+			oSection1:Cell("nAp1"):SetValue(nAp1)			
+			oSection1:Cell("nAp2"):SetValue(nAp2)			
+			oSection1:Cell("nCusto"):SetValue(nAp2/nAp1Cus)			
+			oSection1:Cell("nAp5"):SetValue(nAp5)			
+			oSection1:Cell("nAp3"):SetValue(nAp3)    
+			
+			oSection1:Cell("nVds"):SetValue(nVds)    			
+						
+			If nAp3 != 0
+				oSection1:Cell("nImpnFat"):SetValue(nAp5-(c310AbaVal(nAp5)))			
+				oSection1:Cell("nValFat"):SetValue(nAp3-(nAp5-(c310AbaVal(nAp5))))			
+				oSection1:Cell("nMargem"):SetValue(100*(c310AbaVal(nAp3)-nAp2)/c310AbaVal(nAp3))			
+			Else
+				oSection1:Cell("nImpnFat"):SetValue(0)			
+				oSection1:Cell("nValFat"):SetValue(0)			
+				oSection1:Cell("nMargem"):SetValue(0)						
+			Endif	
+			If nTotFat != 0
+				oSection1:Cell("nMixMar"):SetValue(100*c310AbaVal(nAp3)/c310AbaVal(nTotFat))
+			Else
+				oSection1:Cell("nMixMar"):SetValue(0)
+			Endif	
+			If nTotLuc != 0
+				oSection1:Cell("nMix"):SetValue(100*(c310AbaVal(nAp3)-nAp2)/nTotLuc)
+			Else
+				oSection1:Cell("nMix"):SetValue(0)
+			EndIf
+			oSection1:Cell("nAp4"):SetValue(nAp4)
+			If nAp2 != 0
+				oSection1:Cell("nVar"):Show()
+				oSection1:Cell("nVar"):SetValue((100*nAp4/nAp2)-100)
+			Else
+				oSection1:Cell("nVar"):SetValue(0)	
+				oSection1:Cell("nVar"):Hide()
+			EndIf
+			
+			oSection1:PrintLine()
+			oReport:PrintText(IIF(nAp3-nAp2>0,"+","-"),oReport:Row()-40,oSection1:Cell('nMix'):ColPos())
+			oReport:SkipLine()
+
+		Endif
+		DbSelectArea( "TRB" )
+	EndDo
+	DbSelectArea( "TRB" )
+EndDo
+
+oSection1:Finish()			
+
+oReport:PrintText(" " + cFormula, oReport:Row()+ ( 4 * oReport:LineHeight()) ,oSection1:Cell("cTipant"):ColPos(),,,,.F.)
+
+IF "" <> ALLTRIM(cArqSD1)
+   IF File(cArqSD1+OrdBagExt())
+		Ferase(cArqSD1+OrdBagExt())
+	ENDIF
+Endif
+
+IF "" <> ALLTRIM(cArqSD2)
+	IF File(cArqSD2+OrdBagExt())
+		FErase(cArqSD2+OrdBagExt())
+	ENDIF
+Endif
+
+dbSelectArea("TRB")
+dbCloseArea()
+If File(cArqTrab+GetDBExtension())
+	FErase(cArqTrab+GetDBExtension())    //arquivo de trabalho
+Endif
+If File(cArqTrb2+OrdBagExt())
+	FErase(cArqTrb2+OrdBagExt())
+Endif
+
+Return NIL
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³MATR310R3 ³ Autor ³ Eveli Morasco         ³ Data ³ 10/03/93 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³Relacao dos Produtos Vendidos (Antigo)                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ Generico                                                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ ATUALIZACOES SOFRIDAS DESDE A CONSTRUCAO INICIAL.                     ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ PROGRAMADOR  ³ DATA   ³ BOPS ³  MOTIVO DA ALTERACAO                   ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Bruno        ³16/12/98³melhor³Alteracao das funcoes valSD1(), valSD2()³±±
+±±³              ³        ³      ³para trat. dos impostos nas localizacoes|±±
+±±³ Cesar        ³30/03/99³XXXXXX³Manutencao na SetPrint()                ³±±
+±±³ Fernando Joly³08/09/99³14248A³Revis„o nos Whiles.                     ³±±
+±±³ Cheyenne     ³01/12/99³XXXXXX³Substituicao das chamadas D1_CUSTO1 para³±±
+±±³              ³        ³      ³D1_CUSTO.                               ³±±
+±±³ Iuspa        ³19/12/00³7170  ³parametro inclui devol. compra s/n      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Marcos Hirak  ³07/04/05³XXXXXX³Imprimir B1_CODITE numa linha adicional ³±±
+±±³              ³        ³      ³quando for gestao de Concessionarias    ³±±
+±±³              ³        ³      ³( MV_VEICULO = "S").                    ³±±
+±±³              ³        ³      ³Alteração do  Titulo, pois não é mais   ³±±
+±±³              ³        ³      ³impresso o 2o. Parametro da função RODA ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Descri‡…o ³ PLANO DE MELHORIA CONTINUA        ³Programa:  MATA310.PRX  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ITEM PMC  ³ Responsavel              ³ Data                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³      01  ³                          ³                                 ³±±
+±±³      02  ³ Marcos V. Ferreira       ³ 21/12/2005                      ³±±
+±±³      03  ³                          ³                                 ³±±
+±±³      04  ³ Flavio Luiz Vicco        ³ 27/12/2005                      ³±±
+±±³      05  ³                          ³                                 ³±±
+±±³      06  ³ Flavio Luiz Vicco        ³ 27/12/2005                      ³±±
+±±³      07  | Marcos V. Ferreira       ³ 21/12/2005                      ³±±
+±±³      08  ³                          ³                                 ³±±
+±±³      09  ³                          ³                                 ³±±
+±±³      10  ³                          ³                                 ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+User Function MATR310R3A()
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Define Variaveis                                             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+LOCAL Tamanho  := "G"
+LOCAL titulo   := STR0001	//"Relacao dos Produtos Vendidos"
+LOCAL cDesc1   := STR0002	//"Este relatorio apresenta o valor total das vendas de cada produto,"
+LOCAL cDesc2   := STR0003	//"calculando sua participacao dentro do total das vendas.Mostra tam-"
+LOCAL cDesc3   := STR0004	//"bem o custo de cada venda e o custo de reposicao do produto."
+LOCAL cString  := "SD2"
+LOCAL nTipo    := 0
+LOCAL wnrel    := "MATR310"
+LOCAL nTamSX1  := Len(SX1->X1_GRUPO)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Local para SIGAVEI, SIGAPEC e SIGAOFI         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local aArea1	:= Getarea() 
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Private para SIGAVEI, SIGAPEC e SIGAOFI       ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private lVEIC		:= UPPER(GETMV("MV_VEICULO"))=="S"
+Private aSB1Cod	:= {}
+Private aSB1Ite	:= {}
+Private lT			:= .T.
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis tipo Private padrao de todos os relatorios         ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+PRIVATE aReturn:= {OemToAnsi(STR0005), 1,OemToAnsi(STR0006), 2, 2, 1, "",1 }		//"Zebrado"###"Administracao"
+PRIVATE nLastKey := 0 ,cPerg := "MTR310"  
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+//³Chama função para monitor uso de fontes customizados³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+U_USORWMAKE(ProcName(),FunName())
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Funcao utilizada para verificar a ultima versao dos fontes      ³
+//³ SIGACUS.PRW, SIGACUSA.PRX e SIGACUSB.PRX, aplicados no rpo do   |
+//| cliente, assim verificando a necessidade de uma atualizacao     |
+//| nestes fontes. NAO REMOVER !!!							        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+IF !(FindFunction("SIGACUS_V") .and. SIGACUS_V() >= 20050512)
+	Aviso("Atencao","Atualizar patch do programa SIGACUS.PRW !!!",{"Ok"})
+	Return
+EndIf
+IF !(FindFunction("SIGACUSA_V") .and. SIGACUSA_V() >= 20050512)
+	Aviso("Atencao","Atualizar patch do programa SIGACUSA.PRX !!!",{"Ok"})
+	Return
+EndIf
+IF !(FindFunction("SIGACUSB_V") .and. SIGACUSB_V() >= 20050512)
+	Aviso("Atencao","Atualizar patch do programa SIGACUSB.PRX !!!",{"Ok"})
+	Return
+EndIf
+
+AjustaSX1()
+
+DBSELECTAREA("SF4")
+DBSETORDER(1)
+
+DBSELECTAREA("SF2")
+DBSETORDER(1)
+
+DBSELECTAREA("SF1")
+DBSETORDER(1)
+
+DBSELECTAREA("SD2")
+DBSETORDER(1)
+
+DBSELECTAREA("SD1")
+DBSETORDER(1)
+
+DBSELECTAREA("SB1")
+DBSETORDER(1)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Cria a Pergunta Nova no Sx1                                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+PutSx1("MTR310","18","Considera Vlr PIS/COFINS ?","Considera Vlr PIS/COFINS ?","Consider PIS/COFINS Value ?", "mv_chi", "N", 1, 0, 0,"C", "", "", "", "","MV_PAR18","Sim","Si","Yes", "","Nao","No","No", "", "", "", "", "", "", "", "", "", "", "", "", "")
+// vendedor
+PutSx1("MTR310","19","Vendedor Inicial ?","Vendedor Inicial ?","Vendedor Inicial ?", "mv_vin", "C", 6, 0, ,"G", "", "", "", "","MV_PAR19")
+PutSx1("MTR310","20","Vendedor Final ?","Vendedor Inicial ?","Vendedor Inicial ?", "mv_vfi", "C", 6, 0, ,"G", "", "", "", "","MV_PAR20")
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Verifica as perguntas selecionadas                           ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis utilizadas para parametros                         ³
+//³ MV_PAR01     // Almoxarifado inicial                         ³
+//³ MV_PAR02     // Almoxarifado final                           ³
+//³ MV_PAR03     // Data de emissao inicial                      ³
+//³ MV_PAR04     // Data de emissao final                        ³
+//³ MV_PAR05     // tipo inicial                                 ³
+//³ MV_PAR06     // tipo final                                   ³
+//³ MV_PAR07     // produto inicial                              ³
+//³ MV_PAR08     // produto final                                ³
+//³ MV_PAR09     // moeda selecionada ( 1 a 5 )                  ³
+//³ MV_PAR10     // Considera Valor IPI Sim N„o                  ³
+//³ MV_PAR11     // Considera Devolucao NF Orig/NF Devl/Nao Cons.³
+//³ MV_PAR12     // Quanto a Estoque Movimenta/Nao Movta/Ambos   ³
+//³ MV_PAR13     // Quanto a Duplicata Gera/Nao Gera/Ambos       ³
+//³ MV_PAR14     // Considera Valor ICMS Sim N„o                 ³
+//³ MV_PAR15     // Abate Impostos Nao Faturados ?               ³
+//³ MV_PAR16     // Perc. Abatimento ?                           ³
+//³ MV_PAR17     // Inclui Devolucao de Compra?                  ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+aSB1Cod	:= TAMSX3("B1_COD")
+aSB1Ite	:= TAMSX3("B1_CODITE")
+
+if lVEIC
+
+	nCOL1		:= ABS(aSB1Cod[1] - aSB1Ite[1]) + 1 +  aSB1Cod[1]
+	
+   DBSELECTAREA("SX1")
+   DBSETORDER(1)
+   DBSEEK(cPerg)
+   DO WHILE SX1->X1_GRUPO == cPerg .AND. !SX1->(EOF())
+      IF "PRODU" $ UPPER(SX1->X1_PERGUNT) .AND. UPPER(SX1->X1_TIPO) == "C" .AND. ;
+      (SX1->X1_TAMANHO <> aSB1Ite[1] .OR. UPPER(SX1->X1_F3) <> "VR4")
+
+         RECLOCK("SX1",.F.)
+         SX1->X1_TAMANHO := aSB1Ite[1]
+         SX1->X1_F3 := "VR4"
+         DBCOMMIT()
+         MSUNLOCK()
+         
+      ENDIF
+      DBSKIP()
+   ENDDO
+   DBCOMMITALL()
+   RESTAREA(aArea1)
+else
+   DBSELECTAREA("SX1")
+   DBSETORDER(1)
+   DBSEEK(PADR(cPerg,nTamSX1))
+   DO WHILE SX1->X1_GRUPO == PADR(cPerg,nTamSX1) .AND. !SX1->(EOF())
+      IF "PRODU" $ UPPER(SX1->X1_PERGUNT) .AND. UPPER(SX1->X1_TIPO) == "C" .AND. ;
+      (SX1->X1_TAMANHO <> aSB1Cod[1] .OR. UPPER(SX1->X1_F3) <> "SB1")
+
+         RECLOCK("SX1",.F.)
+         SX1->X1_TAMANHO := aSB1Cod[1]
+         SX1->X1_F3 := "SB1"
+         DBCOMMIT()
+         MSUNLOCK()
+         
+      ENDIF
+	  If cPaisLoc <> "BRA" .And. SX1->X1_ORDEM $ "10#14#18" 
+	     RecLock("SX1",.F.)
+		 SX1->X1_GSC := IIF(SX1->X1_ORDEM=="18","S","C")
+		 MsUnLock()
+		 
+		 aHelpSpa := {}
+                                        
+     	 Aadd( aHelpSpa, "Sera considerado el valor de los        " )
+		 Aadd( aHelpSpa, "impuestos en el saldo del archivo de    " )
+ 		 Aadd( aHelpSpa, "Itens del Pedido de Venta (SD2).        " )
+
+         PutSX1Help("P.MTR31010.",,,aHelpSpa)
+
+  		 aHelpSpa := {}
+                                        
+     	 Aadd( aHelpSpa, "Sera considerado el valor de los        " )
+		 Aadd( aHelpSpa, "impuestos del valor en el archivo de    " )
+ 		 Aadd( aHelpSpa, "Items de la Factura de Entrada (SD1)    " )
+ 		 
+         PutSX1Help("P.MTR31014.",,,aHelpSpa)
+	  Endif  
+      DBSKIP()
+   ENDDO
+   DBCOMMITALL()
+   RESTAREA(aArea1)
+endif
+
+
+Pergunte(cPerg,.F.)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Envia controle para a funcao SETPRINT                        ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+wnrel:=SetPrint(cString,wnrel,cPerg,@titulo,cDesc1,cDesc2,cDesc3,.F.,"",,Tamanho)
+
+dbSelectArea( "SD2" )
+If nLastKey = 27
+	dbClearFilter()
+	Return
+Endif
+
+SetDefault(aReturn,cString)
+
+dbSelectArea( "SD2" )
+If nLastKey = 27
+	dbClearFilter()
+	Return
+Endif
+
+RptStatus({|lEnd| C310Imp(@lEnd,wnRel,cString,titulo,Tamanho)},titulo)
+
+Return NIL
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³ C310IMP  ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 12.12.95 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Chamada do Relatorio                                       ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR310			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function C310Imp(lEnd,WnRel,cString,titulo,Tamanho)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis locais exclusivas deste programa                   ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Local cRodaTxt := STR0007		//"REGISTRO(S)"
+Local nCntImpr := 0
+Local lDevolucao := .F.
+Local nAp1,nAp1Cus,nAp2,nAp3,nAp4,nAp5,nVds
+Local nAt1,nAt1Cus,nAt2,nAt3,nAt4,nAt5,nVdt
+Local nAg1,nAg1Cus,nAg2,nAg3,nAg4,nAg5,nVdg
+Local cCodAnt := "",cTipant := "",nTotFat:=0,nTotLuc:=0
+Local nMoeda ,lPassou
+Local cArqSD1:=cArqSD2:=cArqTrab:=cArqTrb2:=cKeySD2:=sKeySD1:=cFilSD1:=cFilSD2:=""
+Local cEstoq := If( (mv_par12 == 1),"S",If( (mv_par12 == 2),"N","SN" ) )
+Local cDupli := If( (mv_par13 == 1),"S",If( (mv_par13 == 2),"N","SN" ) )
+Local nValCus := 0
+Local aTam:={}
+Local nIndSd1:= 0
+Local aStruct := {}
+Local nCpo
+Local cAliasTop
+Local cQuery	:= ""
+Local lQuery	:= .F.
+Local cFilOrder	:= ""
+Local cCpo  := ""
+Local cNCpo := ""
+Local aImpVar := {}
+Local cFormula := ""
+
+Private aCampos := {}
+Private cCampImp
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Contadores de linha e pagina                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private li := 80 ,m_pag := 1
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Variaveis privadas especificas deste relatorio               ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+Private lContinua := .T.
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Inicializa os codigos de caracter Comprimido/Normal da impressora ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+nTipo  := IIF(aReturn[4]==1,15,18)
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Monta os Cabecalhos                                          ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+nMoeda := mv_par09
+titulo := AllTrim(Titulo) +  " - "+GetMv("MV_SIMB"+Alltrim(Str(nMoeda)))
+
+cRodaTxt := alltrim(substr(cRodaTxt, at("(S)", upper(cRodaTxt)) + 3 ))
+
+If mv_par15 == 1
+	cFormula := cRodaTxt +" => (( B - A ) / B ) * 100"
+Else                                                             
+	cFormula := cRodaTxt + " =>  C = B - "+Str(mv_par16,5,2)+"%  => (( C - A ) / C ) * 100"
+EndIf
+
+cabec1 := STR0008		//"TP CODIGO          D E S C R I C A O                              QUANTIDADE  UM         CUSTO       CUSTO POR      VALOR FAT.       V A L O R   IMPOSTOS NAO    VAL FATURADO -     MAR    MIX    MIX       CUSTO DE    VARIA"
+cabec2 := STR0009		//"                                                                                         TOTAL        UNIDADE            BRUTO        FATURADO      FATURADOS    IMP. NAO FAT.      GEM   *MAR              REPOSICAO     CAO"
+*****                     12 123456789012345 1234567890123456789012345678901234567890 1,123,123,123,12 12 123,123,123.12 123,123,123.12 123,123,123.12 123,123,123.12 123,123,123.12 123,123,123.12 +1234.1 1234.1+1234.1 111.123.123.12 1234.1
+*****                     0         1         2         3         4         5         6         7         8         9        10        11        12        13        14        15        16        17        18        19        20        21        22
+*****                     01234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890
+
+If (mv_par11 # 3)
+
+	dbSelectArea( "SD1" )
+	cArqSD1 := CriaTrab( NIL,.F. )
+	cKeySD1 := "D1_FILIAL+D1_COD+D1_SERIORI+D1_NFORI+D1_ITEMORI"
+
+	cFilSD1 := "D1_FILIAL = '" + xFilial("SD1") + "'"
+	cFilSD1 += " .And. D1_TIPO = 'D'"
+	cFilSD1 += " .And. D1_COD >= '" + MV_PAR07 + "'"
+	cFilSD1 += " .And. D1_COD <= '" + MV_PAR08 + "'"
+	cFilSD1 += " .And. D1_LOCAL >= '" + MV_PAR01 + "'"
+	cFilSD1 += " .And. D1_LOCAL <= '" + MV_PAR02 + "'"
+	cFilSD1 += " .And. DTOS(D1_DTDIGIT) >= '" + DTOS(MV_PAR03) + "'"
+	cFilSD1 += " .And. DTOS(D1_DTDIGIT) <= '" + DTOS(MV_PAR04) + "'"
+	cFilSD1 += " .And. D1_TP >= '" + MV_PAR05 + "'"
+	cFilSD1 += " .And. D1_TP <= '" + MV_PAR06 + "'"
+
+	IndRegua("SD1",cArqSD1,cKeySD1,,cFilSD1,STR0010)			//"Selecionando Registros..."
+	
+	nIndSd1:=RetIndex("SD1")
+	#IFNDEF TOP
+		dbSetIndex(cArqSd1+OrdBagExt())
+	#ENDIF
+	dbSetOrder(nIndSd1 + 1)
+	dbGoTop()
+
+EndIf
+
+dbSelectArea( "SD2" )
+dbSetOrder( 2 )
+
+cKeySD2 := IndexKey()
+
+If !Empty(aReturn[7])
+	dbClearFilter()
+    cKeySD2 += "+D2_DOC+D2_SERIE"
+EndIf
+
+aTam := TamSx3("D2_FILIAL")
+Aadd(aCampos,{"D2_FILIAL","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_COD")
+Aadd(aCampos,{"D2_COD","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_LOCAL")
+Aadd(aCampos,{"D2_LOCAL","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_SERIE")
+Aadd(aCampos,{"D2_SERIE","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TES")
+Aadd(aCampos,{"D2_TES","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TP")
+Aadd(aCampos,{"D2_TP","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_EMISSAO")
+Aadd(aCampos,{"D2_EMISSAO","D",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TIPO")
+Aadd(aCampos,{"D2_TIPO","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_DOC")
+Aadd(aCampos,{"D2_DOC","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_QUANT")
+Aadd(aCampos,{"D2_QUANT","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_TOTAL")
+Aadd(aCampos,{"D2_TOTAL","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_CUSTO"+Str(mv_par09,1))
+Aadd(aCampos,{"D2_CUSTO","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_VALIPI")
+Aadd(aCampos,{"D2_VALIPI","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_VALICM")
+Aadd(aCampos,{"D2_VALICM","N",aTam[1],aTam[2]})
+aTam := TamSx3("D2_ITEM")
+Aadd(aCampos,{"D2_ITEM","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_ORIGLAN")
+Aadd(aCampos,{"D2_ORIGLAN","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_CLIENTE")
+Aadd(aCampos,{"D2_CLIENTE","C",aTam[1],aTam[2]})
+aTam := TamSx3("D2_LOJA")
+Aadd(aCampos,{"D2_LOJA","C",aTam[1],aTam[2]})
+
+If cPaisLoc<>"BRA"  
+	aStruct:=SD2->(dbStruct())
+	For nCpo := 1 to Len(aStruct)
+		If Substr(aStruct[nCpo][1],1,9)=="D2_VALIMP" .or. Substr(aStruct[nCpo][1],1,9)=="D2_BASIMP" 
+			aTam := TamSx3(aStruct[nCpo][1])
+			Aadd(aCampos,{aStruct[nCpo][1],"N",aTam[1],aTam[2]})
+			Aadd(aImpVar,aStruct[nCpo][1])
+		EndIf
+	Next
+EndIf
+
+cArqTrab := CriaTrab(aCampos)
+Use &cArqTrab Alias TRB New Exclusive
+cArqTrb2 := CriaTrab( NIL,.F. )
+IndRegua("TRB",cArqTrb2,"D2_FILIAL+D2_TP+D2_COD+D2_DOC+D2_SERIE",,cFilSD2,STR0018) //"Selecionando Registros..."
+
+#IFDEF TOP
+	//If !(TcSrvType()=="AS/400") .And. !("POSTGRES" $ TCGetDB())
+		cAliasTop	:= CriaTrab("",.F.)
+		lQuery		:= .T.
+		cQuery := " SELECT SD2.D2_FILIAL,SD2.D2_TP,SD2.D2_COD,SD2.D2_DOC,SD2.D2_SERIE," 
+		cQuery += " SD2.D2_LOCAL,SD2.D2_TES,SD2.D2_EMISSAO,SD2.D2_TIPO,SD2.D2_QUANT," 
+		cQuery += " SD2.D2_TOTAL,SD2.D2_CUSTO"+Str(mv_par09,1)+",SD2.D2_VALIPI," 
+		cQuery += " SD2.D2_VALICM,SD2.D2_ORIGLAN,SD2.D2_CLIENTE," 
+		//cQuery += IIf(!Empty(aReturn[7]),A285QryFil("SD2",cQuery,aReturn[7]),"")
+		cQuery += "	SD2.D2_ITEM,SD2.D2_LOJA"
+		
+		//Adicao a query dos campos de impostos 
+		If cPaisLoc<>"BRA"
+			For nCpo := 1 to Len(aImpVar)
+				cQuery += ",SD2."+aImpVar[nCpo]
+			Next
+		Endif
+		
+/*		cQuery += " FROM " + RetSqlName("SD2") + " SD2 "
+		cQuery += " WHERE SD2.D2_FILIAL = '" + xFilial("SD2") + "'"
+		cQuery += " And SD2.D2_TP >= '" + MV_PAR05 + "'"
+		cQuery += " And SD2.D2_TP <= '" + MV_PAR06 + "'"*/
+		
+		
+		cQuery += " FROM " + RetSqlName("SD2") + " SD2, " + RetSqlName("SF2") + " SF2 "
+		cQuery += " WHERE SD2.D2_FILIAL = '" + xFilial("SD2") + "'"                            
+		cQuery += " AND SF2.F2_FILIAL = '" + xFilial("SF2") + "'"    // ESPECIFICO CANTU
+		cQuery += " AND SF2.F2_FILIAL = SD2.D2_FILIAL"      // ESPECIFICO CANTU
+		cQuery += " AND SF2.F2_SERIE = SD2.D2_SERIE AND SF2.F2_DOC = SD2.D2_DOC" // ESPECIFICO CANTU
+		cQuery += " AND SF2.F2_CLIENTE = SD2.D2_CLIENTE AND SF2.F2_LOJA = SD2.D2_LOJA" // ESPECIFICO CANTU
+		cQuery += " AND SF2.F2_VEND1 >= '" + MV_PAR19 + "'" // ESPECIFICO CANTU
+		cQuery += " AND SF2.F2_VEND1 <= '" + MV_PAR20 + "'" // ESPECIFICO CANTU
+		cQuery += " And SD2.D2_TP >= '" + MV_PAR05 + "'"
+		cQuery += " And SD2.D2_TP <= '" + MV_PAR06 + "'"
+		
+		IF ! lVeic
+			cQuery += " And SD2.D2_COD >= '" + MV_PAR07 + "'"
+			cQuery += " And SD2.D2_COD <= '" + MV_PAR08 + "'"
+		Endif 
+		
+		cQuery += " And SD2.D2_LOCAL >= '" + MV_PAR01 + "'"
+		cQuery += " And SD2.D2_LOCAL <= '" + MV_PAR02 + "'"
+		cQuery += " And SD2.D2_EMISSAO >= '" + DTOS(MV_PAR03) + "'"
+		cQuery += " And SD2.D2_EMISSAO <= '" + DTOS(MV_PAR04) + "'"
+
+		If mv_par17 == 2
+			cQuery += " And D2_TIPO <> 'D'"
+		Endif
+		
+		//Adicao de filtro para nao considerar REMITOS
+		If cPaisLoc<>"BRA"
+			cQuery += " AND NOT ("+IsRemito(2,"D2_TIPODOC")+")"
+		Endif
+		
+		cQuery += "	   And SD2.D_E_L_E_T_ = ' ' "
+		cQuery += "	   And SF2.D_E_L_E_T_ = ' ' " // ESPECIFICO CANTU		
+		
+		
+		If !Empty(aReturn[7])
+			cFilOrder := ", 4 , 5 "  //DOC+SERIE
+		Endif   
+
+	 	cQuery += " ORDER BY  1 , 2 , 3 " + cFilOrder  //FILIAL+TP+COD+DOC+SERIE
+		cQuery:=ChangeQuery(cQuery)
+		MsAguarde({|| dbUseArea(.T.,"TOPCONN",TCGenQry(,,cQuery),cAliasTop,.F.,.T.)},STR0018)
+		aEval(SD2->(dbStruct()), {|x| If(x[2] <> "C" .And. FieldPos(x[1]) > 0, TcSetField(cAliasTop,x[1],x[2],x[3],x[4]),Nil)})
+		SetRegua(LastRec())
+		dbSelectArea(cAliasTop)
+
+    //Else
+#ENDIF
+
+		cFilSD2 := "D2_FILIAL == '" + xFilial("SD2") + "'"
+		cFilSD2 += " .And. D2_TP >= '" + MV_PAR05 + "'"
+		cFilSD2 += " .And. D2_TP <= '" + MV_PAR06 + "'"
+		IF ! lVeic
+			cFilSD2 += " .And. D2_COD >= '" + MV_PAR07 + "'"
+			cFilSD2 += " .And. D2_COD <= '" + MV_PAR08 + "'"
+		Endif
+		cFilSD2 += " .And. D2_LOCAL >= '" + MV_PAR01 + "'"
+		cFilSD2 += " .And. D2_LOCAL <= '" + MV_PAR02 + "'"
+		cFilSD2 += " .And. DTOS(D2_EMISSAO) >= '" + DTOS(MV_PAR03) + "'"
+		cFilSD2 += " .And. DTOS(D2_EMISSAO) <= '" + DTOS(MV_PAR04) + "'"
+
+		If mv_par17 == 2
+			cFilSD2 += ' .And. D2_TIPO # "D"'
+		Endif
+
+		cArqSD2 := CriaTrab( NIL,.F. )
+		IndRegua("SD2",cArqSD2,cKeySD2,,cFilSD2,STR0018) //"Selecionando Registros..."
+		
+#IFDEF TOP
+	//EndIf
+#ENDIF	
+
+GeraTrab("SD2",cAliasTop)
+
+SB1->(dbSetOrder(1))
+
+If mv_par11 != 3
+	dbSelectArea("SD1")
+	dbGoTop()
+	GeraTrab("SD1")
+EndIf
+
+dbSelectArea("TRB")
+dbGoTop()
+
+SetRegua(RecCount())		// Total de Elementos da regua
+
+While lContinua .And. !TRB->(Eof())
+	
+	If lEnd
+		@Prow()+1,001 PSay STR0011		//"CANCELADO PELO OPERADOR"
+		lContinua := .F.
+		Exit
+	Endif
+	
+	IncRegua()
+	
+	If !(cCodAnt == TRB->D2_COD)
+		cCodAnt    := TRB->D2_COD
+		lDevolucao := .T.
+	EndIf
+	  
+	SB1->(dbSeek(xFilial("SB1") + TRB->D2_COD))
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+	//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !(TRB->D2_ORIGLAN == "LF") .And. AvalTes(TRB->D2_TES,cEstoq,cDupli)
+		If TRB->D2_TIPO != "D"
+			If (mv_par09 > 1)
+				nValCus := TRB->D2_CUSTO
+				If nValCus > 0
+					nTotLuc += nValCus
+				Else
+					nTotLuc += xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				EndIf
+			Else
+				nTotLuc += TRB->D2_CUSTO
+			EndIf
+			If cPaisLoc<>"BRA"
+				nTotFat +=  ValSD2()
+			Else
+				If (mv_par09 > 1)
+					nTotFat += xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				Else
+					nTotFat += ValSD2()
+				EndIf
+			EndIf	
+		Else
+			If (mv_par09 > 1)
+				nValCus := TRB->D2_CUSTO
+				If nValCus > 0
+					nTotLuc -= nValCus
+				Else
+					nTotLuc -= xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				EndIf
+			Else
+				nTotLuc -= TRB->D2_CUSTO
+			EndIf	
+			If cPaisLoc<>"BRA"
+				nTotFat -=  ValSD2()
+			Else
+				If (mv_par09 > 1)
+					nTotFat -= xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+				Else
+					nTotFat -= ValSD2()
+				EndIf
+			EndIf
+		Endif
+		Do Case
+		Case (mv_par11 == 1)
+			DbSelectArea( "SD1" )
+			If DbSeek( xFilial("SD1") + TRB->D2_COD + TRB->D2_SERIE + TRB->D2_DOC + TRB->D2_ITEM,.F. )
+				While !SD1->(Eof()) .And. (SD1->D1_COD == TRB->D2_COD) .And. (TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM == SD1->D1_SERIORI+SD1->D1_NFORI+AllTrim(SD1->D1_ITEMORI))
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+					//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !(D1_ORIGLAN == "LF") .And. AvalTes(D1_TES,cEstoq,cDupli)
+
+						If (mv_par09 > 1)
+							nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+							if nValCus > 0
+								nTotLuc -= nValCus
+							else
+								nTotLuc -= xMoeda( D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+							endif
+						Else
+							nTotLuc -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+						EndIf
+
+						If (mv_par09 > 1)
+							nTotFat -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+						Else
+							nTotFat -= ValSD1()
+						EndIf
+					EndIf
+					dbSelectArea('SD1')
+					DbSkip( 1 )
+				EndDo
+			EndIf
+		Case (mv_par11 == 2) .And. lDevolucao
+			DbSelectArea( "SD1" )
+			If DbSeek( xFilial("SD1") + TRB->D2_COD + TRB->D2_SERIE + TRB->D2_DOC,.F. )
+				While !SD1->(Eof()) .And. (SD1->D1_COD == TRB->D2_COD) .And. (TRB->D2_SERIE+TRB->D2_DOC == SD1->D1_SERIORI+SD1->D1_NFORI)
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+					//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !(D1_ORIGLAN == "LF") .And. AvalTes(D1_TES,cEstoq,cDupli)
+							
+						If (mv_par09 > 1)
+							nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+							if nValCus > 0
+								nTotLuc -= nValCus
+							else
+								nTotLuc -= xMoeda( D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+							endif
+						Else
+							nTotLuc -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+						EndIf
+						
+						If (mv_par09 > 1)
+							nTotFat -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+						Else
+							nTotFat -= ValSD1()
+						EndIf
+					EndIf
+					dbSelectArea('SD1')
+					DbSkip( 1 )
+				EndDo
+			EndIf
+		EndCase
+	EndIf
+	
+	DbSelectArea( "TRB" )
+	DbSkip( 1 )
+	lDevolucao := !(TRB->D2_TIPO == 'D')
+EndDo
+
+nTotLuc := c310AbaVal(nTotFat)-nTotLuc
+
+TRB->(DbGoTop())
+
+nAg1	:= 0
+nAg1Cus	:= 0
+nAg2	:= 0
+nAg3	:= 0
+nAg4	:= 0
+nAg5	:= 0
+nVdg    := 0
+cCodAnt := ""
+
+dbSelectArea("TRB")
+While lContinua .And. !TRB->(Eof())
+	
+	If lEnd
+		@Prow()+1,001 PSay STR0011		//"CANCELADO PELO OPERADOR"
+		Exit
+	Endif
+	
+	nAt1	:= 0
+	nAt1Cus	:= 0
+	nAt2	:= 0
+	nAt3	:= 0
+	nAt4	:= 0
+	nAt5	:= 0
+	nVdt	:= 0
+
+	lPassou := .F.
+	cTipant := TRB->D2_TP
+	
+	While lContinua .And. !TRB->(Eof()) .And. (TRB->D2_TP == cTipant)
+		
+		IF lEnd
+			@Prow()+1,001 PSay STR0011		//"CANCELADO PELO OPERADOR"
+			lContinua := .F.
+			Exit
+		Endif
+		
+		SB1->(DbSeek( xFilial("SB1") + TRB->D2_COD, .F. ))
+		
+		nAp1 	:= 0
+		nAp1Cus	:= 0
+		nAp2	:= 0
+		nAp3	:= 0
+		nAp4	:= 0
+		nAp5	:= 0
+		nVds    := 0
+		nVlc    := 0
+		
+		If !(cCodAnt == TRB->D2_COD)
+			cCodAnt    := TRB->D2_COD
+			lDevolucao := !(TRB->D2_TIPO == 'D')
+		EndIf
+		
+		While lContinua .And. !TRB->(Eof()) .And.  TRB->D2_TP+TRB->D2_COD == cTipant+cCodAnt
+			
+			IF lEnd
+				@Prow()+1,001 PSay STR0011		//"CANCELADO PELO OPERADOR"
+				lContinua := .F.
+				Exit
+			Endif
+				
+			IncRegua()
+			
+			//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+			//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+			//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+			//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+			If !(TRB->D2_ORIGLAN == "LF") .And. AvalTes(TRB->D2_TES,cEstoq,cDupli)
+				If !(TRB->D2_TIPO == "D")
+					If AvalTes(TRB->D2_TES,"S")
+						nAp1Cus+=TRB->D2_QUANT
+					Endif
+					nAp1 += TRB->D2_QUANT
+					If (mv_par09 > 1)
+						nValCus := TRB->D2_CUSTO
+						if nValCus > 0
+							nAp2 += nValCus
+						else
+							nAp2 += xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						endif
+					Else
+						nAp2 += TRB->D2_CUSTO
+					EndIf
+					
+					If (mv_par09 > 1)
+						nAp3 += Iif(cPaisLoc<>"BRA",ValSD2(),xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO ))
+						nAux := Iif(cPaisLoc<>"BRA",ValSD2(),xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO ))
+						nVds += fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+						
+						If cPaisLoc=="BRA"
+							nAp5 += xMoeda( TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+
+						Else
+							nAp5 += SumTaxSD2(.F.)
+						EndIf
+					Else
+						nAp3 += ValSD2()
+						nAux := ValSD2()
+						nVds += fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+						
+						If cPaisLoc=="BRA"
+							nAp5 += TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)
+
+						Else
+							nAp5 += SumTaxSD2(.F.)
+						EndIf
+					EndIF
+					
+					If mv_par09 > 1
+						nAp4 += (TRB->D2_QUANT*xMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+					Else
+						If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+							nAp4 += (TRB->D2_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+						Else
+							nAp4 += (TRB->D2_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+						EndIf
+					EndIF
+				Else   
+					If AvalTes(TRB->D2_TES,"S")
+						nAp1Cus-=TRB->D2_QUANT
+					Endif   
+					nAp1 -= TRB->D2_QUANT
+					If (mv_par09 > 1)
+						nValCus := TRB->D2_CUSTO
+						if nValCus > 0
+							nAp2 -= nValCus
+						else
+							nAp2 -= xMoeda( TRB->D2_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						endif
+					Else
+						nAp2 -= TRB->D2_CUSTO
+					EndIf
+					
+					If (mv_par09 > 1)
+						nAp3 -= xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						nAux := xMoeda( ValSD2(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+						nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+
+						If cPaisLoc=="BRA"
+							nAp5 -= xMoeda( TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, TRB->D2_EMISSAO )
+
+						Else
+							nAp5 -=  SumTaxSD2(.F.)
+						EndIf
+					Else
+						nAp3 -= ValSD2()
+						nAux := ValSD2()
+						nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+						
+						If cPaisLoc=="BRA"
+							nAp5 -= TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)
+
+						Else
+							nAp5 -= SumTaxSD2(.F.)
+						EndIf
+					EndIF
+					
+					If mv_par09 > 1
+						nAp4 -= (TRB->D2_QUANT*xMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+					Else
+						If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+							nAp4 -= (TRB->D2_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+						Else
+							nAp4 -= (TRB->D2_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+						EndIf
+					EndIF
+				Endif
+				Do Case
+				Case (mv_par11 == 1)
+					DbSelectArea( "SD1" )
+					If DbSeek( xFilial("SD1") + TRB->D2_COD+TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM,.F. )
+						While !SD1->(Eof()) .And. (D1_COD == cCodAnt) .And. (TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM == SD1->D1_SERIORI+SD1->D1_NFORI+AllTrim(SD1->D1_ITEMORI))
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+							//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If !(SD1->D1_ORIGLAN == "LF") .And. AvalTes(SD1->D1_TES,cEstoq,cDupli)
+								If AvalTes(D1_TES,"S")
+									nAp1Cus -= D1_QUANT
+								Endif
+								nAp1 -= SD1->D1_QUANT
+								If (mv_par09 > 1)
+									nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+									if nValCus > 0
+										nAP2 -= nValCus
+									else
+										nAp2 -= xMoeda(SD1->D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),nMoeda, SD1->D1_DTDIGIT )
+									endif
+								Else
+									nAp2 -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+								EndIf
+
+								If (mv_par09 > 1)
+									nAp3 -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SD1->D1_DTDIGIT )
+									nAux := xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SD1->D1_DTDIGIT )
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+
+									If cPaisLoc = "BRA"
+										nAp5 -= xMoeda( SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SD1->D1_DTDIGIT )
+
+									Else
+										nAp5 -= SumTaxSD1(.F.)
+									EndIf
+								Else
+									nAp3 -= ValSD1()
+									nAux := ValSD1()
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+									
+									If cPaisLoc="BRA"
+										nAp5 -= SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0)
+
+									Else
+										nAp5 -= SumTaxSD1(.F.)
+									EndIf
+								EndIF
+
+								If mv_par09 > 1
+									nAp4 -= (SD1->D1_QUANT*xMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+								Else
+									If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+										nAp4 -= (SD1->D1_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+									Else
+										nAp4 -= (SD1->D1_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+									EndIf
+								EndIF
+							EndIf
+							dbSelectArea('SD1')
+							DbSkip( 1 )
+						EndDo
+					EndIf
+				Case (mv_par11 == 2) .And. lDevolucao
+			 		DbSelectArea( "SD1" )
+					If DbSeek( xFilial("SD1") +TRB->D2_COD+TRB->D2_SERIE+TRB->D2_DOC,.F. )
+						While !SD1->(Eof()) .And. (D1_COD == cCodAnt) .And. (TRB->D2_SERIE+TRB->D2_DOC == SD1->D1_SERIORI+SD1->D1_NFORI)
+							//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+							//³ Despreza Notas Fiscais Lancadas Pelo Modulo do Livro Fiscal    ³
+							//³ Despreza Itens em que a TES NAO Se Ajusta a Selecao do Usuario ³
+							//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+							If !(D1_ORIGLAN == "LF") .And. AvalTes(D1_TES,cEstoq,cDupli)
+								If AvalTes(D1_TES,"S")
+									nAp1Cus -= D1_QUANT
+								Endif
+								nAp1 -= D1_QUANT
+								If (mv_par09 > 1)
+									nValCus :=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+									if nValCus > 0
+										nAp2 -= nValCus
+									else
+										nAp2 -= xMoeda( D1_CUSTO, Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+									endif
+								Else
+									nAp2 -=  &("D1_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)) )
+								EndIf
+								
+								If (mv_par09 > 1)
+									nAp3 -= xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+									nAux := xMoeda( ValSD1(), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, D1_DTDIGIT )
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+
+									If cPaisLoc = "BRA"
+										nAp5 -= xMoeda( SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),nMoeda,D1_DTDIGIT )
+
+									Else
+										nAp5 -=  SumTaxSD1(.F.)
+									EndIf
+								Else
+									nAp3 -= ValSD1()
+									nAux := ValSD1()
+									nVds -= fDescFin(TRB->D2_FILIAL,TRB->D2_DOC,TRB->D2_SERIE,TRB->D2_CLIENTE,TRB->D2_LOJA,SB1->B1_COD,nAux)
+									
+									If cPaisLoc = "BRA"
+										nAp5 -= SD1->D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,SD1->D1_VALIPI,0)
+
+									Else
+										nAp5 -= SumTaxSD1(.F.)
+									EndIf
+								EndIF
+									
+								If mv_par09 > 1
+									nAp4 -= (D1_QUANT*xMoeda( RetFldProd(SB1->B1_COD,"B1_CUSTD"), Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")), nMoeda, SB1->B1_DATREF ))
+								Else
+									If RetFldProd(SB1->B1_COD,"B1_MCUSTD") > "1" .and. !Empty(RetFldProd(SB1->B1_COD,"B1_MCUSTD"))
+										nAp4 -= (D1_QUANT*(XMoeda(RetFldProd(SB1->B1_COD,"B1_CUSTD"),Val(RetFldProd(SB1->B1_COD,"B1_MCUSTD")),1,dDataBase)))
+									Else
+										nAp4 -= (D1_QUANT*RetFldProd(SB1->B1_COD,"B1_CUSTD"))
+									EndIf
+								EndIF
+							EndIf
+							dbSelectArea('SD1')
+							DbSkip( 1 )
+						EndDo
+					EndIf
+				EndCase
+				
+			EndIf
+			DbSelectArea( "TRB" )
+			dbSkip()
+			lDevolucao := !(TRB->D2_TIPO == 'D')
+		EndDo
+
+		IF lEND
+			EXIT
+		ENDIF
+
+		If nAp1 != 0 .Or. nAp2 != 0 .Or. nAp3 != 0 .Or. nAp4 != 0 .And. lDevolucao
+			
+			If li > 55
+				Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+			EndIf
+			
+			lPassou := .T.
+			nCntImpr++
+			if lVeic
+			   IF sb1->(dbseek( xFilial("SB1") + cCodAnt ))
+			      IF !EMPTY(SB1->B1_CODITE)
+						@ li,003 PSay '[ ' + SB1->B1_CODITE + ' ] GRUPO : [ ' + SB1->B1_GRUPO + ' ]'
+						li++
+					ENDIF	
+				ENDIF	
+			endif	
+
+			@ li,000 PSay cTipant
+			@ li,003 PSay cCodAnt
+			@ li,019 PSay Substr(SB1->B1_DESC,1,40)
+			@ li,060 PSay nAp1 Picture PesqPictQt("D2_QUANT",16)
+			@ li,078 PSay SB1->B1_UM
+			@ li,081 PSay nAp2 PicTure TM(nAp2,14)
+			@ li,097 PSay (nAp2/nAp1Cus) Picture TM(nAp2,14)
+			@ li,113 PSay nAp5 PicTure TM(nAp5,14)  // Valor Fat. Bruto
+			@ li,128 PSay nAp3 PicTure TM(nAp3,14)
+			
+			If nAp3 != 0
+				@ li,144 PSay nAp5-(c310AbaVal(nAp5)) PicTure TM(nAp5,12) //Impostos nao faturados
+				@ li,160 PSay nAp3-(nAp5-(c310AbaVal(nAp5))) PicTure TM(nAp3,14) // Valor Faturado - impostos nao faturados
+				@ li,176 PSay 100*(c310AbaVal(nAp3)-nAp2)/c310AbaVal(nAp3) PicTure "9999.9" //margem
+			EndIf			
+			/*
+			If nTotFat != 0
+				@ li,183 PSay 100*c310AbaVal(nAp3)/c310AbaVal(nTotFat) PicTure "9999.9"
+			EndIf
+			If nTotLuc != 0
+				@ li,190 PSay IIF(nAp3-nAp2>0,"+","-")
+				@ li,191 PSay 100*(c310AbaVal(nAp3)-nAp2)/nTotLuc PicTure "9999.9"
+			EndIf
+			*/
+	        @ li,186 PSay ((nAp3-nVds)*100)/nAp3 PicTure "9999.99"			
+			// @ li,199 PSay nAp4 PicTure TM(nAp4,14)
+			@ li,197 PSay nVds PicTure TM(nVds,14)
+			If nAp2 != 0
+				//@ li,214 PSay (100*nAp4/nAp2)-100 PicTure "9999.9" 
+				@ li,213 PSay ((nVds-nAp2)*100)/nVds PicTure "9999.99"
+			EndIf
+			
+			li++
+			nAt1	+= nAp1
+			nAt1Cus	+= nAp1Cus
+			nAt2	+= nAp2
+			nAt3	+= nAp3
+			nAt4	+= nAp4
+			nAt5	+= nAp5
+			nVdt    += nVds
+		Endif
+		DbSelectArea( "TRB" )
+	EndDo
+	IF lEND
+	   EXIT
+	ENDIF
+	If lPassou
+		If li > 59
+			Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+		EndIf
+		
+		@ li,000 PSay STR0012 + cTipant			//"Sub Total : "
+		@ li,060 PSay nAt1 Picture PesqPictQt("D2_QUANT",16)
+		@ li,081 PSay nAt2 PicTure TM(nAt2,14)
+		@ li,097 PSay (nAt2/nAt1Cus) Picture TM(nAt2,14)
+		@ li,113 PSay nAt5 PicTure TM(nAt5,14)
+		@ li,128 PSay nAt3 PicTure TM(nAt3,14)
+		If nAt3 # 0
+			@ li,144 PSay nAt5-(c310AbaVal(nAt5)) PicTure TM(nAp3,12)
+			@ li,160 PSay nAt3-(nAt5-(c310AbaVal(nAt5))) PicTure TM(nAp3,14)
+			@ li,176 PSay 100*(c310AbaVal(nAt3)-nAt2)/c310AbaVal(nAt3) PicTure "9999.9"
+		EndIf
+		/*
+		@ li,183 PSay 100*(c310AbaVal(nAt3))/c310AbaVal(nTotfat) PicTure "9999.9"
+		If nTotLuc != 0
+			@ li,190 PSay IIF(nAt3-nAt2>0,"+","-")
+			@ li,191 PSay 100*(c310AbaVal(nAt3)-nAt2)/nTotLuc PicTure "9999.9"
+		EndIF
+		*/
+		@ li,186 PSay ((nAt5-nVdt)*100)/nAt5 PicTure "9999.99"
+		//@ li,199 PSay nAt4 PicTure tm(nAt4,14)
+		@ li,197 PSay nVdt PicTure tm(nAt4,14)
+		If nAt2 != 0
+			//@ li,214 PSay (100*nAt4/nAt2)-100 PicTure "9999.9"			
+			@ li,213 PSay Round(((nVdt-nAt2)*100)/nVdt,2) PicTure "9999.99"
+		EndIF
+		
+		li += 2
+		nAg1	+= nAt1
+		nAg1Cus	+= nAt1Cus
+		nAg2	+= nAt2
+		nAg3	+= nAt3
+		nAg4	+= nAt4
+		nAg5	+= nAt5
+		nVdg    += nVdt
+	EndIf
+	DbSelectArea( "TRB" )
+EndDo
+
+IF ! lEND
+	If li > 59
+		Cabec(titulo,cabec1,cabec2,wnrel,Tamanho,nTipo)
+	EndIf
+	@ li,000 PSay STR0013		//"T O T A L ---> "
+	@ li,060 PSay nAg1 Picture PesqPictQt("D2_QUANT",16)
+	@ li,081 PSay nAg2 PicTure TM(nAg2,14)
+	@ li,097 PSay (nAg2/nAg1Cus) Picture TM(nAg2,14)
+	@ li,113 PSay nAg5 PicTure TM(nAg5,14)
+	@ li,128	PSay nAg3 PicTure TM(nAg3,14)
+	If nAg3 != 0
+		@ li,144 PSay nAg5-(c310AbaVal(nAg5)) PicTure TM(nAp3,12)
+		@ li,160 PSay nAg3-(nAg5-(c310AbaVal(nAg5))) PicTure TM(nAp3,14)
+		@ li,176 PSay 100*(c310AbaVal(nAg3)-nAg2)/c310AbaVal(nAg3) PicTure "9999.9"
+	EndIF
+	/*
+	If nTotFat != 0
+		@ li,183 PSay 100*c310AbaVal(nAg3)/c310AbaVal(nTotFat) PicTure "9999.9"
+	EndIF
+	If nTotluc != 0
+		@ li,190 PSay IIF(nAg3-nAg2>0,"+","-")
+		@ li,191 PSay 100*(c310AbaVal(nAg3)-nAg2)/nTotLuc PicTure "9999.9"
+	EndIF
+	*/
+	@ li,186 PSay ((nAg5-nVdg)*100)/nAg5 PicTure "9999.99"   
+	
+	//@ li,199 PSay nAg4 PicTure tm(nAg4,14)
+	@ li,197 PSay nVdg PicTure tm(nAg4,14)
+	If nAg2 # 0
+		@ li,213 PSay Round(((nVdg-nAg2)*100)/nVdg,2) PicTure "9999.99"
+	EndIF
+	LI++ 
+	LI++   
+	@ li,00 PSay OemToAnsi(cFormula)  //Formula Utilizada para calculo da Coluna Margem
+	LI++
+	Roda(nCntImpr,cRodaTxt,Tamanho) // nao imprime mais as informacoes do 2o. parametro da funcao Roda.
+ENDIF
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Devolve a condicao original do arquivo principal             ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+dbSelectArea(cString)
+dbClearFilter()
+Set Order To 1
+
+If aReturn[5] = 1
+	Set Printer To
+	dbCommitAll()
+	OurSpool(wnrel)
+Endif
+
+MS_FLUSH()
+
+DbSelectArea( "SD1" )
+RetIndex( "SD1" )
+dbSetOrder(1)
+
+DbSelectArea( "SD2" )
+RetIndex( "SD2" )
+dbSetOrder(1)
+
+IF "" <> ALLTRIM(cArqSD1)
+   IF File(cArqSD1+OrdBagExt())
+		Ferase(cArqSD1+OrdBagExt())
+	ENDIF
+Endif
+
+IF "" <> ALLTRIM(cArqSD2)
+	IF File(cArqSD2+OrdBagExt())
+		FErase(cArqSD2+OrdBagExt())
+	ENDIF
+Endif
+
+dbSelectArea("TRB")
+dbCloseArea()
+If File(cArqTrab+GetDBExtension())
+	FErase(cArqTrab+GetDBExtension())    //arquivo de trabalho
+Endif
+If File(cArqTrb2+OrdBagExt())
+	FErase(cArqTrb2+OrdBagExt())
+Endif
+
+RETURN
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³  ValSD1  ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 20/05/97 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Soma os valores de acordo com os parametros no arquivo SD1 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR310                                                    ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function ValSD1()
+Local nValRet	:=0, nImpInc:=0,nImpNoInc:=0
+Local aImpostos:={}
+Local nY := 0
+
+If ( cPaisLoc=="BRA" )
+	nValRet:=D1_TOTAL-SD1->D1_VALDESC+IF(mv_par10 == 1,D1_VALIPI,0)-IF(mv_par14 == 1,0,D1_VALICM)-IF(mv_par18 == 1,0,PisCofins("SD1",1,2,1) + PisCofins("SD1",2,2,1))
+ElseIf (mv_par10==1.Or.mv_par14<>1)
+	aImpostos:=TesImpInf(SD1->D1_TES)
+	For nY:=1 to Len(aImpostos)
+		cCampImp:="SD1->D1_"+(Substr(aImpostos[nY][2],4))
+		If ( aImpostos[nY][3]=="1" )
+			nImpInc  += &cCampImp
+		Else
+			nImpNoInc+= &cCampImp
+		EndIf
+	Next
+	nValRet:=D1_TOTAL-D1_VALDESC+IF(mv_par10 == 1,nImpInc,0)-IF(mv_par14 == 1,0,nImpNoInc)-IF(mv_par18 == 1,0,PisCofins("SD1",1,2,1) + PisCofins("SD1",2,2,1))
+Else
+	nValRet:=D1_TOTAL-D1_VALDESC
+EndIf
+
+If cPaisLoc<>"BRA"
+	
+	nValRet := CalcMoed("SF1",nValRet)//Calcula a taxa da moeda de acordo com a venda
+
+EndIf
+RETURN nValRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³  ValSD2  ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 20/05/97 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Soma os valores de acordo com os parametros no arquivo SD2 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR310			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function ValSD2()
+Local nValRet	:=0, nImpInc:=0,nImpNoInc:=0
+Local aImpostos:={}
+Local nY := 0
+
+If ( cPaisLoc=="BRA" )
+	nValRet:=TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)-IF(mv_par14 == 1,0,TRB->D2_VALICM)- IF(mv_par18 == 1,0,PisCofins("TRB",1,2,2) + PisCofins("TRB",2,2,2))
+ElseIf (mv_par10==1.Or.mv_par14<>1)
+	aImpostos:=TesImpInf(TRB->D2_TES)
+	For nY:=1 to Len(aImpostos)
+		cCampImp:="TRB->D2_"+(Substr(aImpostos[nY][2],4))
+		If ( aImpostos[nY][3]=="1" )
+			nImpInc  += &cCampImp
+		Else
+			nImpNoInc+= &cCampImp
+		EndIf
+	Next
+	nValRet:=TRB->D2_TOTAL+IF(mv_par10 == 1,nImpInc,0)-IF(mv_par14 == 1,0,nImpNoInc) - IF(mv_par18 == 1,0,PisCofins("TRB",1,2,2) + PisCofins("TRB",2,2,2))
+Else
+	nValRet:=TRB->D2_TOTAL
+EndIf
+
+If cPaisLoc<>"BRA"
+	
+	nValRet := CalcMoed("SF2",nValRet)//Calcula a taxa da moeda de acordo com a venda
+
+EndIf
+RETURN nValRet
+
+/*/
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o   ³c310AbaVal³Autor³Patricia A. Salomao       ³ Data ³17.11.00  ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o³Abate % dos Impostos nao Faturados do Valor da Venda         ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametro³ExpN1	: Valor Base p/ Abatimento                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso     ³MATR310                                                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+/*/
+Static Function c310AbaVal(nValor)
+LOCAL perc := mv_par16
+If mv_par15 == 2
+	nValor := nValor - (nValor * perc /100)
+EndIf
+Return(nValor)
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³GeraTrab  ³ Autor ³Patricia A. Salomao    ³ Data ³ 11/01/01 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Gera Arquivo de Trabalho                                   ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function GeraTrab(cAlias,cAliasTrb,lGrafico)
+Local nPosFirst, nCpos, lSeek
+Local nCpo      := 0
+Local lRetPE    := .T.
+Local lMR110FIL := ExistBlock("MR110FIL")
+Default lGrafico := .F.
+
+cAliasTrb := IIF(cAliasTrb==Nil,cAlias,cAliasTrb)
+
+dbSelectArea(cAliasTrb)
+dbGoTop()
+While !Eof() .And. &(Subs(cAlias,2,2)+"_FILIAL") == xFilial(cAlias)
+
+	dbSelectArea(cAliasTrb)
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ CONTROLE para SIGAVEI, SIGAPEC e SIGAOFI       ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	IF LVEIC
+	   lT := .T.
+	   DBSELECTAREA("SB1")
+	   DBSEEK( xFilial("SB1") + &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_COD"))
+		IF !EOF()
+		   IF (SB1->B1_CODITE >= mv_par07 .and. SB1->B1_CODITE <= mv_par08)
+			   lT := .F.
+			ENDIF
+		ENDIF
+		dbSelectArea(cAliasTrb)
+		if lT
+		   DBSKIP()
+		   LOOP
+	   endif
+	ENDIF
+
+   If cAlias == "SD2" 
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Executa a validacao do filtro do usuario           	         ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If !lGrafico
+			If !Empty(aReturn[7]) .And. !&(aReturn[7])
+				dbSkip()
+				Loop
+			EndIf
+		Endif	
+
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³ Verifica se foi gerada uma NF para este Cupom Fiscal (LOJR130) ³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		If MTR310CF((cAliasTrb)->D2_DOC,(cAliasTrb)->D2_SERIE,(cAliasTrb)->D2_CLIENTE,(cAliasTrb)->D2_LOJA)
+			dbSkip()
+			Loop
+		Endif
+	EndIf
+	//  So' deverao entrar no "Arquivo de Trabalho", as NF's de Devolucao, que nao tenham suas NF's Originais emitidas no mesmo periodo.
+	If cAlias == "SD1" .And. TRB->(lSeek:=(dbSeek((cAliasTrb)->D1_FILIAL+(cAliasTrb)->D1_TP+(cAliasTrb)->D1_COD+(cAliasTrb)->D1_NFORI+(cAliasTrb)->D1_SERIORI))) .And. TRB->D2_TIPO == "N"
+		dbSkip()
+		loop
+	EndIf
+	If cAlias == "SD1" .And. MV_PAR11 == 3 .And. (cAliasTrb)->D1_TIPO == 'D'
+		dbSkip()
+		Loop
+	EndIf
+  
+  //ESPECIFICO CANTU
+  //******************
+  If cAlias == "SD1" .And. MV_PAR11 <> 3    
+    _Tem := .t.
+	  dbSelectArea("SF2")
+	  dbSetOrder(1)
+	  If dbSeek(xFilial("SF2") + (cAliasTrb)->D1_NFORI + (cAliasTrb)->D1_SERIORI + (cAliasTrb)->D1_FORNECE + (cAliasTrb)->D1_LOJA)
+	    If SF2->F2_VEND1 < MV_PAR19 .OR. SF2->F2_VEND1 > MV_PAR20
+	      _Tem := .f.   
+	    Endif
+	  Else           
+	    _Tem := .f.
+	  Endif
+    If !_Tem					
+	    dbSelectArea(cAliasTrb)
+	    DbSkip()
+	    Loop
+	  Else                      
+	    dbSelectArea(cAliasTrb)
+	  EndIf   
+	Endif				//******************
+
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ ExecBlock - Filtro no SD1                                    ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If cAlias == "SD1" .And. lMR110FIL .And. !lGrafico
+        lRetPe := ExecBlock("MR110FIL", .F., .F., {aReturn[7]} )
+        If ValType(lRetPE)=="L" .And. lRetPe==.F.
+			dbSkip()
+			Loop
+        EndIf
+	EndIf
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+  	//³ Validacao da Pasta Filtro                                    ³
+  	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If cAlias == "SD1" .And. lMR110FIL .And. !lGrafico
+        lRetPe := ExecBlock("MR110FIL", .F., .F., {aReturn[7]} )
+        If ValType(lRetPE)=="L" .And. lRetPe==.F.
+			dbSkip()
+			Loop
+        EndIf
+	EndIf
+
+	dbSelectArea("TRB")
+	Reclock("TRB",.T.)
+	Replace TRB->D2_FILIAL  With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_FILIAL")
+	Replace TRB->D2_COD     With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_COD")
+	Replace TRB->D2_LOCAL   With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_LOCAL")
+	If cAlias == "SD2"
+		Replace TRB->D2_SERIE   With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_SERIE")
+	Else 
+		Replace TRB->D2_SERIE   With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_SERIORI")
+	Endif   
+	Replace TRB->D2_TES     With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_TES")
+	Replace TRB->D2_TP      With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_TP")
+	Replace TRB->D2_EMISSAO With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_EMISSAO")
+	Replace TRB->D2_TIPO    With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_TIPO")
+	If cALIAS == "SD2"
+		Replace TRB->D2_DOC With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_DOC")
+	Else 
+		Replace TRB->D2_DOC With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_NFORI")
+	Endif   
+	Replace TRB->D2_QUANT   With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_QUANT")
+	Replace TRB->D2_TOTAL   With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_TOTAL")
+	Replace TRB->D2_VALIPI  With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_VALIPI")
+	Replace TRB->D2_VALICM  With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_VALICM")
+	Replace TRB->D2_ITEM    With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_ITEM")
+	Replace TRB->D2_ORIGLAN With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_ORIGLAN")
+	Replace TRB->D2_LOJA    With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_LOJA")
+
+	If cAlias == "SD2"
+		Replace TRB->D2_CUSTO   With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_CUSTO"+Str(mv_par09,1))
+		Replace TRB->D2_CLIENTE With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_CLIENTE") 
+	Else
+		Replace TRB->D2_CUSTO  With &(cAliasTrb+"->"+Subs(cAlias,2,2)+"_CUSTO"+If((mv_par09==1),"",Str(mv_par09,1)))
+	EndIf
+	
+	If cPaisLoc<>"BRA"
+		nPosFirst := AScan(aCampos,{|x| "D2_VALIMP"$Alltrim(x[1]) .or. "D2_BASIMP"$AllTrim(x[1])})
+		For nCpo := nPosFirst to Len(aCampos)
+			If "D2_VALIMP"$aCampos[nCpo][1] .or. "D2_BASIMP"$aCampos[nCpo][1]
+				Replace TRB->&(aCampos[nCpo][1]) With &(cAliasTrb+"->"+Substr(cAlias,2,2)+Substr(aCampos[nCpo][1],3,8))
+			EndIf
+		Next
+	EndIf
+	MsUnlock()
+	dbSelectArea(cAliasTrb)
+	dbSkip()
+EndDo
+TRB->(dbGoTop())
+Return
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³SumTaxSD2 ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 20/05/97 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Soma os valores de acordo com os parametros no arquivo SD2 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR310			                                          ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function SumTaxSD2(lNoInc)
+Local nValRet	:=0, nImpInc:=0,nImpNoInc:=0
+Local aImpostos:={}
+Local nY := 0
+
+If ( cPaisLoc=="BRA" )
+	If lNoInc
+		nValRet:=TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)-IF(mv_par14 == 1,0,TRB->D2_VALICM)
+	Else
+		nValRet:=TRB->D2_TOTAL+IF(mv_par10 == 1,TRB->D2_VALIPI,0)
+	EndIf
+Else
+	aImpostos:=TesImpInf(TRB->D2_TES)
+	For nY:=1 to Len(aImpostos)
+		cCampImp:="TRB->D2_"+(Substr(aImpostos[nY][2],4))
+		If ( aImpostos[nY][3]=="1" )
+			nImpInc  += &cCampImp
+		Else
+			nImpNoInc+= &cCampImp
+		EndIf
+	Next
+	If lNoInc
+		nValRet:=TRB->D2_TOTAL+IF(mv_par10 == 1,nImpInc,0)-IF(mv_par14 == 1,0,nImpNoInc)
+	Else
+		nValRet:=TRB->D2_TOTAL+IF(mv_par10 == 1,nImpInc,0)	
+	EndIf
+EndIf
+If cPaisLoc<>"BRA"
+	
+	nValRet := CalcMoed("SF2",nValRet)//Calcula a taxa da moeda de acordo com a venda.
+
+EndIf
+RETURN nValRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Fun‡…o    ³SumTaxSD1 ³ Autor ³ Rodrigo de A. Sartorio³ Data ³ 20/05/97 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡…o ³ Soma os valores de acordo com os parametros no arquivo SD1 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³ Uso      ³ MATR310			                                            ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function SumTaxSD1(lNoInc)
+Local nValRet	:=0, nImpInc:=0,nImpNoInc:=0
+Local aImpostos:={}
+Local nY :=0
+
+If ( cPaisLoc=="BRA" )
+	If lNoInc
+		nValRet:=D1_TOTAL+IF(mv_par10 == 1,D1_VALIPI,0)-IF(mv_par14 == 1,0,D1_VALICM)
+	Else
+		nValRet:=D1_TOTAL+IF(mv_par10 == 1,D1_VALIPI,0)
+	EndIf
+Else
+	aImpostos:=TesImpInf(SD1->D1_TES)
+	For nY:=1 to Len(aImpostos)
+		cCampImp:="SD1->D1_"+(Substr(aImpostos[nY][2],4))
+		If ( aImpostos[nY][3]=="1" )
+			nImpInc  += &cCampImp
+		Else
+			nImpNoInc+= &cCampImp
+		EndIf
+	Next
+	If lNoInc
+		nValRet:=D1_TOTAL+IF(mv_par10 == 1,nImpInc,0)-IF(mv_par14 == 1,0,nImpNoInc)
+	Else
+		nValRet:=D1_TOTAL+IF(mv_par10 == 1,nImpInc,0)
+	EndIf
+EndIf
+
+If cPaisLoc<>"BRA"
+	
+	nValRet := CalcMoed("SF1",nValRet)//Calcula a taxa da moeda de acordo com a venda
+
+EndIf
+RETURN nValRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³PISCOFINS ºAutor  ³Marcos Vinicius     º Data ³  12/05/04   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Retorno Pis ou Cofins                                      º±±
+±±º          ³                                                            º±±
+±±ºParametros³cAliasNew - Tabela de Trabalho (SD1,SD2)                    º±±
+±±º          ³nPisConf  - Deseja o Valor ou Base do Pis ou do Cofins      º±±
+±±º          ³nBasVal   - Deseja a Base ou o Valor                        º±±
+±±º          ³nEntrSai  - Notas Entrada/Saida                             º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ MATR310                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+
+Static Function PisCofins(cAliasNew,nPisCof,nBasVal,nEntrSai)
+
+Local cAliasSB1  := "SB1"
+Local cAliasSF4  := "SF4"
+Local cAliasSF2  := "SF2"
+Local cAliasSF1  := "SF1"
+Local cCpVlPisEn := ""
+Local cCpBsPisEn := ""
+Local cCpVlPisSa := ""
+Local cCpBsPisSa := ""
+Local cCpVlCofEn :=  ""
+Local cCpBsCofEn :=  ""
+Local cCpVlCofSa :=  ""
+Local cCpBsCofSa :=  ""
+Local aRelImp	 := MaFisRelImp("MT100",{ "SD1" })
+Local aRelImp2	 := MaFisRelImp("MT100",{ "SD2" })
+Local nRedPis	 := 1
+Local nRedCOF	 := 1
+Local nPsVlPisEn := 0
+Local nPsBsPisEn := 0
+Local nPsVlPisSa := 0
+Local nPsBsPisSa := 0
+Local nBasCofins := 0 
+Local nPsVlCofEn := 0 
+Local nPsBsCofEn := 0  
+Local nPsVlCofSa := 0 
+Local nPsBsCofSa := 0  
+Local nScanPis   := 0
+Local nScanCof   := 0  
+Local nTxPis     := 0
+Local nTxCof     := 0
+Local nRetorno   := 0
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Processamento de Notas de Entrada                                 ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+If nEntrSai == 1
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Tratamento para os campos do PIS - Entrada                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !Empty( nScanPis := aScan(aRelImp,{|x| x[1]=="SD1" .And. x[3]=="IT_BASEPS2"} ) )
+		cCpBsPisEn := aRelImp[nScanPis,2]
+		nPsBsPisEn := SD1->(FieldPos(cCpBsPisEn))
+	EndIf
+	If !Empty( nScanPis := aScan(aRelImp,{|x| x[1]=="SD1" .And. x[3]=="IT_VALPS2"} ) )
+		cCpVlPisEn := aRelImp[nScanPis,2]
+		nPsVlPisEn := SD1->(FieldPos(cCpVlPisEn))
+	EndIf
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Tratamento para os campos do COF - Entrada                        ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !Empty( nScanCof := aScan(aRelImp,{|x| x[1]=="SD1" .And. x[3]=="IT_BASECF2"} ) )
+		cCpBsCofEn := aRelImp[nScanCof,2]
+		nPsBsCofEn := SD1->(FieldPos(cCpBsCofEn))
+	EndIf 	
+	If !Empty( nScanCof := aScan(aRelImp,{|x| x[1]=="SD1" .And. x[3]=="IT_VALCF2"} ) )
+		cCpVlCofEn := aRelImp[nScanCof,2]
+		nPsVlCofEn := SD1->(FieldPos(cCpVlCofEn))
+	EndIf 	
+
+	dbSelectArea(cAliasNew)
+
+	// Posiciona Registros
+	SF4->(dbSetOrder(1))
+	SF4->(MsSeek(xFilial("SF4") + (cAliasNew)->D1_TES))
+	SB1->(dbSetOrder(1))
+	SB1->(MsSeek(xFilial("SB1") + (cAliasNew)->D1_COD))
+	SF1->(dbSetOrder(1))
+	SF1->(MsSeek(xFilial("SF1") +(cAliasNew)->D1_DOC+(cAliasNew)->D1_SERIE+(cAliasNew)->D1_FORNECE+(cAliasNew)->D1_LOJA+(cAliasNew)->D1_TIPO))
+
+	If (cAliasSF4)->F4_AGREG <> "N"
+		If SB1->(FieldPos("B1_PPIS")) >0
+			nTxPIS	:= 	if((cAliasSB1)->B1_PPIS <> 0,(cAliasSB1)->B1_PPIS , GetMv("MV_TXPIS"))
+		Endif
+		If SB1->(FieldPos("B1_REDPIS")) > 0
+			nRedPIS	:= 	Iif((cAliasSB1)->B1_REDPIS > 0,1-((cAliasSB1)->B1_REDPIS / 100 ), 1 )
+		Endif
+		If SF4->(FieldPos("F4_BASEPIS")) > 0
+			nRedPIS	*= 	Iif((cAliasSF4)->F4_BASEPIS > 0,1-((cAliasSF4)->F4_BASEPIS / 100 ), 1 )
+		Endif		
+		If SB1->(FieldPos("B1_REDCOF")) > 0
+			nRedCOF	:= 	Iif((cAliasSB1)->B1_REDCOF > 0,1-((cAliasSB1)->B1_REDCOF / 100 ), 1 )
+		Endif
+		If SF4->(FieldPos("F4_BASECOF")) > 0
+			nRedCOF	*= 	Iif((cAliasSF4)->F4_BASECOF > 0,1-((cAliasSF4)->F4_BASECOF / 100 ), 1 )
+		EndIf
+		If SB1->(FieldPos("B1_PCOFINS")) > 0
+			nTxCOF	:=	if((cAliasSB1)->B1_PCOFINS <> 0,(cAliasSB1)->B1_PCOFINS , GetMv("MV_TXCOFIN"))
+		Endif
+
+		If SF4->(FieldPos("F4_PISCOF")) >0 
+
+			If (cAliasSF4)->F4_PISCOF $ "13" .And. nPisCof == 1 //1-PIS 
+				
+				If SF4->(FieldPos("F4_PISCRED")) >0	
+					nRetorno := 0
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica se existem os campos para gravacao do valor/base do PIS  ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !Empty( nPsVlPisEn ) .And. !Empty( nPsBsPisEn )
+						If nBasVal == 2 
+							nRetorno := ( cAliasNew )->( FieldGet( nPsVlPisEn ) )
+						Else   
+							nRetorno := ( cAliasNew )->( FieldGet( nPsBsPisEn ) )
+						Endif   
+					EndIf
+					
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica se existe algum valor gravado, se nao, calcula           ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !Empty( nRetorno ) 
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita;2-Debita
+							If nBasVal == 2 
+								nRetorno := ( cAliasNew )->( FieldGet( nPsVlPisEn ) )
+							Else   
+								nRetorno := ( cAliasNew )->( FieldGet( nPsBsPisEn ) )
+							Endif   
+						ElseIf (cAliasSF4)->F4_PISCRED =="2"
+							If nBasVal == 2 
+								nRetorno := ( cAliasNew )->( FieldGet( nPsVlPisEn ) )
+							Else   
+								nRetorno := ( cAliasNew )->( FieldGet( nPsBsPisEn ) )
+							Endif   
+						Endif
+					
+					Else			
+					
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita;2-Debita
+							If nBasVal == 2 
+								nRetorno  := ( ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC) * nRedPis) * (nTxPIS/100)
+							Else   
+								nRetorno := ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC )  * nRedPis
+							Endif   
+						ElseIf (cAliasSF4)->F4_PISCRED =="2"
+							If nBasVal == 2 
+								nRetorno := ( ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC) * nRedPis) * (nTxPIS/100)
+							Else   
+								nRetorno := ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC  ) * nRedPis
+							Endif   
+						Endif
+                        
+					EndIf				
+			
+				EndIf
+
+			ElseIf (cAliasSF4)->F4_PISCOF $ "23" .And. nPisCof == 2 // 2-Cofins
+
+				If SF4->(FieldPos("F4_PISCRED")) >0
+			
+					nRetorno := 0 
+			
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica se existem os campos para gravacao do valor/base da COFINS ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !Empty( nPsVlCofEn ) .And. !Empty( nPsBsCofEn ) 
+						If nBasVal == 2 
+							nRetorno := ( cAliasNew )->( FieldGet( nPsVlCofEn ) )
+						Else   
+							nRetorno := ( cAliasNew )->( FieldGet( nPsBsCofEn ) )
+						Endif   
+					EndIf	
+			
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Verifica se existe algum valor gravado, se nao, calcula           ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If !Empty( nRetorno ) 
+					
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita;2-Debita
+							If nBasVal == 2 
+								nRetorno := ( cAliasNew )->( FieldGet( nPsVlCofEn ) )
+							Else   
+								nRetorno := ( cAliasNew )->( FieldGet( nPsBsCofEn ) )
+							Endif   
+						ElseIf (cAliasSF4)->F4_PISCRED =="2"
+							If nBasVal == 2 
+								nRetorno := ( cAliasNew )->( FieldGet( nPsVlCofEn ) )
+							Else
+								nRetorno := ( cAliasNew )->( FieldGet( nPsBsCofEn ) )
+							Endif   
+						Endif
+					
+					Else
+					
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita ;2-Debita
+							If nBasVal == 2 
+								nRetorno := ( ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC )  * nRedCOF) * (nTxCOF/100)
+							Else   
+								nRetorno := ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC  ) * nRedCOF
+							Endif   
+					
+						ElseIf	(cAliasSF4)->F4_PISCRED =="2"
+					
+							If nBasVal == 2 
+								nRetorno := ( ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC )  * nRedCOF) * (nTxCOF/100)
+							Else   
+								nRetorno := ( (cAliasNew)->D1_TOTAL+((cAliasNew)->D1_TOTAL*((cAliasSF1)->F1_SEGURO+(cAliasSF1)->F1_DESPESA+(cAliasSF1)->F1_FRETE)/(cAliasSF1)->F1_VALMERC)-(cAliasNew)->D1_VALDESC  ) * nRedCOF
+							Endif   
+							               
+						Endif	
+										
+					Endif
+					
+				Endif	
+
+			Endif
+								
+		EndIf
+	
+	EndIf
+
+EndIf
+
+//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+//³ Processamento de Notas de Saida                                   ³
+//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+If nEntrSai == 2
+   
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Tratamento para os campos do PIS - Saida                          ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !Empty( nScanPis := aScan(aRelImp2,{|x| x[1]=="SD2" .And. x[3]=="IT_BASEPS2"} ) )
+		cCpBsPisSa := aRelImp2[nScanPis,2]
+		nPsBsPisSa := SD2->(FieldPos(cCpBsPisSa))
+	EndIf
+	If !Empty( nScanPis := aScan(aRelImp2,{|x| x[1]=="SD2" .And. x[3]=="IT_VALPS2"} ) )
+		cCpVlPisSa := aRelImp2[nScanPis,2]
+		nPsVlPisSa := SD2->(FieldPos(cCpVlPisSa))
+	EndIf 	
+	
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Tratamento para os campos do COF - Saida                          ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+	If !Empty( nScanCof := aScan(aRelImp2,{|x| x[1]=="SD2" .And. x[3]=="IT_BASECF2"} ) )
+		cCpBsCofSa := aRelImp2[nScanCof,2]
+		nPsBsCofSa := SD2->(FieldPos(cCpBsCofSa))
+	EndIf 	
+	If !Empty( nScanCof := aScan(aRelImp2,{|x| x[1]=="SD2" .And. x[3]=="IT_VALCF2"} ) )
+		cCpVlCofSa := aRelImp2[nScanCof,2]
+		nPsVlCofSa := SD2->(FieldPos(cCpVlCofSa))
+	EndIf 	
+
+	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+	//³ Processamento das Notas de Saida                                  ³
+	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+	dbSelectArea(cAliasNew)
+
+	// Posiciona Registros 
+	SF4->(dbSetOrder(1))
+	SF4->(MsSeek(xFilial("SF4") + (cAliasNew)->D2_TES))
+	SB1->(dbSetOrder(1))
+	SB1->(MsSeek(xFilial("SB1") + (cAliasNew)->D2_COD))
+	SF2->(dbSetOrder(1))
+	SF2->(MsSeek(xFilial("SF2") + (cAliasNew)->D2_DOC+(cAliasNew)->D2_SERIE+(cAliasNew)->D2_CLIENTE+(cAliasNew)->D2_LOJA))
+	
+	If (cAliasSF4)->F4_AGREG <> "N"
+
+		If SB1->(FieldPos("B1_PPIS")) >0
+			nTxPIS	:= 	if((cAliasSB1)->B1_PPIS <> 0,(cAliasSB1)->B1_PPIS , GetMv("MV_TXPIS"))
+		Endif
+		If SB1->(FieldPos("B1_REDPIS")) > 0
+			nRedPIS	:= 	Iif((cAliasSB1)->B1_REDPIS > 0,1-((cAliasSB1)->B1_REDPIS / 100 ), 1 )
+		Endif
+		If SF4->(FieldPos("F4_BASEPIS")) > 0
+			nRedPIS	*= 	Iif((cAliasSF4)->F4_BASEPIS > 0,1-((cAliasSF4)->F4_BASEPIS / 100 ), 1 )
+		Endif
+		If SB1->(FieldPos("B1_REDCOF")) > 0
+			nRedCOF	:= 	Iif((cAliasSB1)->B1_REDCOF > 0,1-((cAliasSB1)->B1_REDCOF / 100 ), 1 )
+		EndIf
+		If SF4->(FieldPos("F4_BASECOF")) > 0
+			nRedCOF	*= 	Iif((cAliasSF4)->F4_BASECOF > 0,1-((cAliasSF4)->F4_BASECOF / 100 ), 1 )
+		EndIf
+		If SB1->(FieldPos("B1_PCOFINS")) > 0	
+			nTxCOF	:=	if((cAliasSB1)->B1_PCOFINS <> 0,(cAliasSB1)->B1_PCOFINS , GetMv("MV_TXCOFIN"))
+		Endif
+
+		If SF4->(FieldPos("F4_PISCOF")) > 0
+			 
+			If (cAliasSF4)->F4_PISCOF $ "13" .And. nPisCof == 1 //1-PIS
+				nRetorno := 0
+ 
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Verifica se existem os campos para gravacao do valor/base do PIS  ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If !Empty( nPsVlPisSa ) .And. !Empty( nPsBsPisSa )
+					If nBasVal == 2 
+						nRetorno := ( cAliasNew )->( FieldGet( nPsVlPisSa ) )
+					Else   
+						nRetorno := ( cAliasNew )->( FieldGet( nPsBsPisSa ) )
+					Endif   
+				EndIf
+				
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Verifica se existe algum valor gravado, se nao, calcula           ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If !Empty( nRetorno )
+
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Sempre efetua o debito na saida                                   ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If nBasVal == 2
+						nRetorno := ( cAliasNew )->( FieldGet( nPsVlPisSa ) )
+					Else
+						nRetorno := ( cAliasNew )->( FieldGet( nPsBsPisSa ) )
+					Endif  
+
+					If SF4->(FieldPos("F4_PISCRED")) >0
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita;2-Debita
+							If nBasVal == 2
+								nRetorno := ( cAliasNew )->( FieldGet( nPsVlPisSa ) )
+							Else
+								nRetorno := ( cAliasNew )->( FieldGet( nPsBsPisSa ) )
+							Endif  
+						Endif	
+					Endif	
+
+				Else   
+				
+					//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+					//³ Sempre efetua o debito na saida                                   ³
+					//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+					If nBasVal == 2
+						nRetorno := ( ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC) ) * nRedPis ) * (nTxPIS/100)
+					Else
+						nRetorno := ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC)  ) * nRedPis
+					Endif  
+					
+					If SF4->(FieldPos("F4_PISCRED")) >0
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita;2-Debita
+							If nBasVal == 2
+								nRetorno  := ( ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC) )  * nRedPis) * (nTxPIS/100)
+							Else
+								nRetorno  := ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC)  ) * nRedPis
+							Endif  
+						Endif	
+					Endif
+					 
+				EndIf						
+
+			ElseIf (cAliasSF4)->F4_PISCOF $ "23" .And. nPisCof == 2 // 2-Cofins
+
+				nRetorno := 0 					
+	
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Verifica se existem os campos para gravacao do valor/base do COFINS ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If !Empty( nPsVlCofSa ) .And. !Empty( nPsBsCofSa ) 
+					If nBasVal == 2
+						nRetorno :=( cAliasNew )->( FieldGet( nPsVlCofSa ) )
+					Else   
+						nRetorno :=( cAliasNew )->( FieldGet( nPsBsCofSa ) )
+					Endif
+				EndIf	
+	
+				//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+				//³ Verifica se existe algum valor gravado, se nao, calcula           ³
+				//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+				If !Empty( nRetorno )
+					If nBasVal == 2
+						nRetono := ( cAliasNew )->( FieldGet( nPsVlCofSa ) )
+					Else   
+						nRetorno:= ( cAliasNew )->( FieldGet( nPsBsCofSa ) )
+					Endif
+					
+					If SF4->(FieldPos("F4_PISCRED")) >0
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita;2-Debita
+							If nBasVal == 2
+								nRetono := ( cAliasNew )->( FieldGet( nPsVlCofSa ) )
+							Else   
+								nRetorno:= ( cAliasNew )->( FieldGet( nPsBsCofSa ) )
+							Endif
+						Endif	
+					Endif	
+					   
+				Else
+					If nBasVal == 2 
+						nRetorno := ( ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC) ) * nRedCOF) * (nTxCOF/100)
+					Else   
+						nRetorno := ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC)  ) * nRedCOF
+					Endif  
+					
+					If SF4->(FieldPos("F4_PISCRED")) >0
+						If (cAliasSF4)->F4_PISCRED =="1"  //1-Credita ;2-Debita
+							If nBasVal == 2 
+								nRetorno := ( ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC) )  * nRedCOF) * (nTxCOF/100)
+							Else   
+								nRetorno := ( (cAliasNew)->D2_TOTAL+((cAliasNew)->D2_TOTAL*((cAliasSF2)->F2_SEGURO+(cAliasSF2)->F2_DESPESA+(cAliasSF2)->F2_FRETE)/(cAliasSF2)->F2_VALMERC)  ) * nRedCOF
+							Endif  
+						Endif	
+					Endif	
+					 
+				Endif
+		 
+			EndIf							
+		     
+		EndIf
+	      
+	Endif   
+Endif
+
+RETURN(nRetorno)  
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³CalcMoed  ºRafael P. Rizzatto  ³Microsiga  º Data ³  07/10/04    º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³ Funcao de localizacoes que calcula a taxa da moeda de acordo    º±±
+±±º          ³ com a  venda do produto. Nota de Credito/Cliente (Entrada)      º±±
+±±º          ³ e Venda/Fatutamento (Saida).                                    º±±
+±±º          ³                                                                 º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ AP7                                                             º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/       
+Static Function CalcMoed(cTab,nVal)
+Local nValor :=0         
+Local aArea:={}
+Local aAreaSF2:={}
+Local aAreaSF1:={}
+Local nMoedaOri:= 0             
+
+If cTab == "SF2"
+	aArea:=GetArea()
+	aAreaSF2:=SF2->(GetArea())                                        	
+	SF2->(dbSetOrder(1))
+	SF2->(MsSeek(xFilial("SF2") + TRB->D2_DOC+TRB->D2_SERIE+TRB->D2_CLIENTE+TRB->D2_LOJA))
+	nMoedaOri:=SF2->F2_MOEDA
+	RestArea(aArea)
+	SF2->(RestArea(aAreaSF2))
+	nValor := xMoeda( nVal, nMoedaOri, mv_par09, TRB->D2_EMISSAO )
+ElseIf cTab == "SF1"
+	aArea:=GetArea()
+	aAreaSF1:=SF1->(GetArea())                                        	
+	SF1->(dbSetOrder(1))
+	SF1->(MsSeek(xFilial("SF1")+TRB->D2_COD+TRB->D2_SERIE+TRB->D2_DOC+TRB->D2_ITEM,.F.))
+	nMoedaOri:=SF1->F1_MOEDA
+	RestArea(aArea)
+	SF1->(RestArea(aAreaSF1))
+	nValor := xMoeda( nVal, nMoedaOri, mv_par09, TRB->D2_EMISSAO )
+EndIf             
+
+Return nValor
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÉÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍ»±±
+±±ºPrograma  ³MTR310CF  ºAutor  ³Marcos V. Ferreira  º Data ³  06/01/05   º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºDesc.     ³Verifica se para este Cupom Fiscal foi gerado NF (LOJR130), º±±
+±±º          ³validacao utilizada para evitar duplicidade.                º±±
+±±ÌÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¹±±
+±±ºUso       ³ MATR310                                                    º±±
+±±ÈÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß
+*/
+Static Function MTR310CF(cDoc,cSerie,cCliente,cLoja)
+Local lRet := .F.
+Local aAreaCF := GetArea()
+Local lSeek := .F.
+
+dbSelectArea("SF2")
+dbSetOrder(1)
+lSeek:= (dbSeek(xFilial("SF2")+cDoc+cSerie+cCliente+cLoja))
+If lSeek .And. allTrim(F2_ESPECIE) == "NF" .And. !Empty(allTrim(F2_NFCUPOM))
+   lRet := .T.
+Endif
+RestArea(aAreaCF)
+Return lRet
+
+/*
+ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+±±ÚÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÂÄÄÄÄÄÄÂÄÄÄÄÄÄÄÄÄÄ¿±±
+±±³Funcao    ³AjustaSX1 ³ Autor ³ Eveli Morasco         ³ Data ³ 10/03/93 ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Descri‡ao ³                                                            ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Retorno   ³Nenhum                                                      ³±±
+±±ÃÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´±±
+±±³Parametros³Nenhum                                                      ³±±
+±±ÀÄÄÄÄÄÄÄÄÄÄÁÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ±±
+±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±±
+ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß*/
+Static Function AjustaSX1()
+
+Local aSB1Cod	:= TAMSX3("B1_COD")
+Local aSB1Ite	:= TAMSX3("B1_CODITE")
+Local lVEIC		:= UPPER(GETMV("MV_VEICULO"))=="S"
+Local cPerg     := "MTR310"
+
+PutSx1("MTR310","18","Considera Vlr PIS/COFINS ?","Considera Vlr PIS/COFINS ?","Consider PIS/COFINS Value ?", "mv_chi", "N", 1, 0, 0,"C", "", "", "", "","MV_PAR18","Sim","Si","Yes", "","Nao","No","No", "", "", "", "", "", "", "", "", "", "", "", "", "")
+// vendedor
+PutSx1("MTR310","19","Vendedor Inicial ?","Vendedor Inicial ?","Vendedor Inicial ?", "mv_vin", "C", 6, 0, ,"G", "", "SA3", "", "","MV_PAR19")
+PutSx1("MTR310","20","Vendedor Final ?","Vendedor Inicial ?","Vendedor Inicial ?", "mv_vfi", "C", 6, 0, ,"G", "", "SA3", "", "","MV_PAR20")
+
+if lVEIC
+
+	nCOL1		:= ABS(aSB1Cod[1] - aSB1Ite[1]) + 1 +  aSB1Cod[1]
+	
+   DBSELECTAREA("SX1")
+   DBSETORDER(1)
+   DBSEEK(cPerg)
+   DO WHILE SX1->X1_GRUPO == cPerg .AND. !SX1->(EOF())
+      IF "PRODU" $ UPPER(SX1->X1_PERGUNT) .AND. UPPER(SX1->X1_TIPO) == "C" .AND. ;
+      (SX1->X1_TAMANHO <> aSB1Ite[1] .OR. UPPER(SX1->X1_F3) <> "VR4")
+
+         RECLOCK("SX1",.F.)
+         SX1->X1_TAMANHO := aSB1Ite[1]
+         SX1->X1_F3 := "VR4"
+         DBCOMMIT()
+         MSUNLOCK()
+         
+      ENDIF
+      DBSKIP()
+   ENDDO
+   DBCOMMITALL()
+else
+   DBSELECTAREA("SX1")
+   DBSETORDER(1)
+   DBSEEK(cPerg)
+   DO WHILE SX1->X1_GRUPO == cPerg .AND. !SX1->(EOF())
+      IF "PRODU" $ UPPER(SX1->X1_PERGUNT) .AND. UPPER(SX1->X1_TIPO) == "C" .AND. ;
+      (SX1->X1_TAMANHO <> aSB1Cod[1] .OR. UPPER(SX1->X1_F3) <> "SB1")
+
+         RECLOCK("SX1",.F.)
+         SX1->X1_TAMANHO := aSB1Cod[1]
+         SX1->X1_F3 := "SB1"
+         DBCOMMIT()
+         MSUNLOCK()
+         
+      ENDIF
+	  If cPaisLoc <> "BRA" .And. SX1->X1_ORDEM $ "10#14#18" 
+	     RecLock("SX1",.F.)
+		 SX1->X1_GSC := IIF(SX1->X1_ORDEM=="18","S","C")
+		 MsUnLock()
+		 
+		 aHelpSpa := {}
+                                        
+     	 Aadd( aHelpSpa, "Sera considerado el valor de los        " )
+		 Aadd( aHelpSpa, "impuestos en el saldo del archivo de    " )
+ 		 Aadd( aHelpSpa, "Itens del Pedido de Venta (SD2).        " )
+
+         PutSX1Help("P.MTR31010.",,,aHelpSpa)
+
+  		 aHelpSpa := {}
+                                        
+     	 Aadd( aHelpSpa, "Sera considerado el valor de los        " )
+		 Aadd( aHelpSpa, "impuestos del valor en el archivo de    " )
+ 		 Aadd( aHelpSpa, "Items de la Factura de Entrada (SD1)    " )
+ 		 
+         PutSX1Help("P.MTR31014.",,,aHelpSpa)
+	  Endif  
+      DBSKIP()
+   ENDDO
+   DBCOMMITALL()
+endif
+
+Return Nil
+
+
+Static Function fDescFin(cpFILIAL,cpDOC,cpSERIE,cpCLIENTE,cpLOJA,cpPRODUTO,npValor)
+Local nValRet := npValor
+Local nTmp    := 0
+Local cArea   := GetArea()                        
+
+dbSelectArea("SF2")
+dbSetOrder(2)
+If dbSeek(cpFILIAL+cpCLIENTE+cpLOJA+cpDOC+cpSERIE)
+	If SF2->F2_DESVEN > 0
+		nTmp    := Round((SF2->F2_DESVEN * SF2->F2_VALBRUT) / 100,2)
+		nValRet := nValRet - Round((nValRet * nTmp) / SF2->F2_VALBRUT,2)		
+	Endif
+Endif       
+                          
+RestArea(cArea)
+
+Return nValRet

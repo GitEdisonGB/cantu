@@ -1,0 +1,252 @@
+{
+    "statusCte": "AUTORIZADO",
+    "dataAutorizacao": "2026-05-29T04:27:08-0300",
+    "numero": 10714,
+    "serie": 2,
+    "chaveAcesso": "CTe42260533908000000224570020000107141000000004",
+    "dataEmissao": "2026-05-29T04:22:23-0300",
+    "id": "53bb6350-86d7-4e0f-bdc0-c0338d9e190d",
+    "cfop": "6353",
+    "naturezaOperacao": "PRESTACAO DE SERVICO DE TRANSPORTE A ESTABELECIMENTO COMERCI",
+    "versaoXml": "4.00",
+    "tipoServico": "NORMAL",
+    "finalidadeEmissao": "NORMAL",
+    "tipoEmissao": "NORMAL",
+    "statusPagamento": null,
+    "localEmissao": "CHAPECAo",
+    "localInicioPrestaco": "CHAPECO - SC",
+    "localFimPrestaco": "NONOAI - RS",
+    "nomeUsuarioCriacao": "teilor.ferronatto@bsoft.com.br",
+    "nomeUsuarioEmissao": "teilor.ferronatto@bsoft.com.br",
+    "nomeUsuarioCancelamento": null,
+    "integrado": false,
+    "cartaCorrecao": false,
+    "dadosGerais": {
+        "dadosComplementares": {
+            "caracteristicaAdicionalTransporte": null,
+            "caracteristicaAdicionalServico": null,
+            "nomeFuncionarioEmissorCte": null,
+            "municipioOrigem": null,
+            "municipioDestino": null,
+            "codigoRodaEntrega": null
+        },
+        "previsaoFluxoCarga": null,
+        "passagemList": null,
+        "dadosRetirada": {
+            "retiradoNoDestino": false,
+            "detalhes": null
+        },
+        "dadosRejeicao": {
+            "data": "2026-05-29T04:27:07-0300",
+            "motivoRejeicao": null
+        }
+    },
+    "modal": {
+        "tipoModal": "RODO",
+        "modalRodo": {
+            "previsaoEntrega": null
+        },
+        "modalDuto": null,
+        "modalAero": null,
+        "modalAquav": null
+    },
+    "empresa": {
+        "id": null,
+        "nome": null,
+        "nomeFantasia": null,
+        "cnpj": null,
+        "ie": null,
+        "emailsAlternativos": null,
+        "telefone": null,
+        "email": null,
+        "endereco": null,
+        "observacao": null,
+        "logomarca": null,
+        "certificado": null,
+        "crt": null
+    },
+    "envolvidos": {
+        "remetente": {
+            "id": null,
+            "tipoDocumento": null,
+            "cpfCnpj": "03588984000595",
+            "ie": "257642323",
+            "inscricaoSuframa": null,
+            "nome": "CANTU IMPORTACAO E EXPORTACAO LTDA",
+            "nomeFantasia": null,
+            "telefone": "55493311450",
+            "email": "qualidade.chapeco@cantuflv.com.br",
+            "endereco": {
+                "logradouro": "R JOSE LUIZ MAIA",
+                "bairro": "PASSO DOS FORTES",
+                "cep": "89805710",
+                "numero": "330D",
+                "complemento": "SALA: 02;",
+                "nomeMunicipio": "CHAPECO",
+                "uf": "SC",
+                "pais": "BRASIL"
+            },
+            "observacao": null
+        },
+        "destinatario": {
+            "id": null,
+            "tipoDocumento": null,
+            "cpfCnpj": "37124171000132",
+            "ie": "0820022845",
+            "inscricaoSuframa": null,
+            "nome": "SUPERMERCADO DENTI LTDA",
+            "nomeFantasia": null,
+            "telefone": "05433622629",
+            "email": null,
+            "endereco": {
+                "logradouro": "RUA PEDRO ROSO",
+                "bairro": "CENTRO",
+                "cep": "99600000",
+                "numero": "444",
+                "complemento": null,
+                "nomeMunicipio": "NONOAI",
+                "uf": "RS",
+                "pais": "BRASIL"
+            },
+            "observacao": null
+        },
+        "tomador": {
+            "id": null,
+            "tipoDocumento": null,
+            "cpfCnpj": "03588984000595",
+            "ie": "257642323",
+            "inscricaoSuframa": null,
+            "nome": "CANTU IMPORTACAO E EXPORTACAO LTDA",
+            "nomeFantasia": null,
+            "telefone": "55493311450",
+            "email": "qualidade.chapeco@cantuflv.com.br",
+            "endereco": {
+                "logradouro": "R JOSE LUIZ MAIA",
+                "bairro": "PASSO DOS FORTES",
+                "cep": "89805710",
+                "numero": "330D",
+                "complemento": "SALA: 02;",
+                "nomeMunicipio": "CHAPECO",
+                "uf": "SC",
+                "pais": "BRASIL"
+            },
+            "observacao": null
+        },
+        "expedidor": null,
+        "recebedor": null
+    },
+    "dadosCarga": {
+        "cargaList": [
+            {
+                "codigoUnidadeMedida": "00",
+                "tipoMedida": "VOLUME",
+                "quantidadeCarga": "0.0000"
+            },
+            {
+                "codigoUnidadeMedida": "01",
+                "tipoMedida": "PESO BRUTO",
+                "quantidadeCarga": "6274.4740"
+            },
+            {
+                "codigoUnidadeMedida": "01",
+                "tipoMedida": "PESO LIQUIDO",
+                "quantidadeCarga": "6258.5800"
+            },
+            {
+                "codigoUnidadeMedida": "03",
+                "tipoMedida": "UNIDADES",
+                "quantidadeCarga": "6644.0000"
+            }
+        ],
+        "documentoTransporteAnteriorList": null,
+        "produtoPerigosoList": [],
+        "veiculoList": [],
+        "fatura": {
+            "numeroFatura": null,
+            "valorOriginal": null,
+            "valorDesconto": null,
+            "valorLiquido": null
+        },
+        "duplicataList": [],
+        "valorTotalMercadoria": "29464.17"
+    },
+    "complementar": {
+        "chavesAcesso": []
+    },
+    "valores": {
+        "componenteFreteList": [
+            {
+                "nome": "Frete valor",
+                "valor": 2700
+            }
+        ],
+        "icms": {
+            "tipoIcms": "NORMAL",
+            "valorBase": 2700,
+            "porcentagemIcms": 12,
+            "valorIcms": 324,
+            "porcentagemReducao": null,
+            "valorCredito": null,
+            "valorIcmsRetido": null
+        },
+        "ibsCbs": null,
+        "nfeList": [
+            "42260503588984000595550010006395121720095990",
+            "42260503588984000595550010006395151593171393",
+            "42260503588984000595550010006395081853237645",
+            "42260503588984000595550010006395141887055210",
+            "42260503588984000595550010006395071924145937",
+            "42260503588984000595550010006395131169977861",
+            "42260503588984000595550010006395061659756611",
+            "42260503588984000595550010006395051945051449",
+            "42260503588984000595550010006395041285416405",
+            "42260503588984000595550010006395091123089162",
+            "42260503588984000595550010006395101270660965",
+            "42260503588984000595550010006395111281758039"
+        ],
+        "nfList": null,
+        "dceList": null,
+        "outrosDocList": null,
+        "valorTotalFrete": 2700
+    },
+    "observacoes": {
+        "obs": "O valor aproximado de tributos incidentes sobre o preAºo deste serviAºo A© de R$ 0.0\n",
+        "obsGerais": "MKC6754",
+        "obsFisco": null,
+        "autXmlCteList": [
+            "04898488000177"
+        ]
+    },
+    "statusAverbacao": "AVERBADO",
+    "protocoloAverbacao": "EGAD1852J44ZELDP185294CU6HZVRQXTS",
+    "seguroCargaList": [
+        {
+            "cte": {
+                "id": "53bb6350-86d7-4e0f-bdc0-c0338d9e190d",
+                "numero": 10714,
+                "serie": 2,
+                "ufInicial": "SC",
+                "ufFinal": "RS",
+                "valorTotalFrete": 2700,
+                "nomeRemetente": null,
+                "nomeTombador": null,
+                "nomeDestinatario": null,
+                "statusCte": "AUTORIZADO",
+                "tipoEmissao": "NORMAL",
+                "xmlExportado": true,
+                "dacteImpresso": false,
+                "dataAutorizacao": "2026-05-29T04:27:08-0300",
+                "dataEmissao": "2026-05-29T04:22:23-0300",
+                "integrado": false,
+                "statusAverbacao": "AVERBADO",
+                "protocoloAverbacao": "EGAD1852J44ZELDP185294CU6HZVRQXTS"
+            },
+            "nomeSeguradora": "MITSUI",
+            "cnpjSeguradora": "33016221000107",
+            "numeroApolice": "PROVISORIA",
+            "numeroAverbacao": "0660207263390800000022457002000010714168",
+            "numeroProtocolo": "EGAD1852J44ZELDP185294CU6HZVRQXTS"
+        }
+    ],
+    "mdfeId": null
+}

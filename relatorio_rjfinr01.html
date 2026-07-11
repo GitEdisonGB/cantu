@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #222; background: #fff; }
+
+  /* ── HEADER ── */
+  .header {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 28px; border-bottom: 2px solid #1a3a5c;
+  }
+  .header-left { display: flex; align-items: center; gap: 14px; }
+  .logo-box {
+    background: #1a3a5c; color: #fff; font-size: 22px; font-weight: 900;
+    width: 52px; height: 52px; display: flex; align-items: center;
+    justify-content: center; letter-spacing: -1px;
+  }
+  .header-company { line-height: 1.4; }
+  .header-company strong { font-size: 13px; color: #1a3a5c; }
+  .header-company span { font-size: 9px; letter-spacing: 1px; color: #555; display: block; }
+  .header-right { text-align: right; font-size: 10px; color: #555; line-height: 1.5; }
+  .header-right strong { color: #1a3a5c; }
+
+  /* ── TITLE BANNER ── */
+  .title-banner {
+    background: #1a3a5c; color: #fff; text-align: center;
+    padding: 12px; font-size: 15px; font-weight: 700; letter-spacing: 1px;
+    margin: 14px 0 0 0;
+  }
+  .subtitle-banner {
+    background: #4a7aac; color: #fff; text-align: center;
+    padding: 7px; font-size: 11px; margin-bottom: 18px;
+  }
+
+  /* ── SECTIONS ── */
+  .section { margin: 0 0 18px 0; }
+  .section-header {
+    background: #1a3a5c; color: #fff; padding: 7px 12px;
+    font-size: 11px; font-weight: 700;
+  }
+  table.info { width: 100%; border-collapse: collapse; }
+  table.info td {
+    padding: 6px 12px; border-bottom: 1px solid #dce3ec;
+    vertical-align: top;
+  }
+  table.info tr:nth-child(odd) td { background: #f4f7fb; }
+  table.info td:first-child { width: 30%; color: #666; font-size: 10px; }
+  table.info td:last-child { font-weight: 600; }
+
+  table.data { width: 100%; border-collapse: collapse; margin-top: 0; }
+  table.data th {
+    background: #4a7aac; color: #fff; padding: 6px 12px;
+    font-size: 10px; font-weight: 700; text-align: left;
+  }
+  table.data td {
+    padding: 6px 12px; border-bottom: 1px solid #dce3ec; vertical-align: top;
+  }
+  table.data tr:nth-child(even) td { background: #f4f7fb; }
+
+  /* ── BODY TEXT ── */
+  .content { padding: 10px 12px; font-size: 10.5px; line-height: 1.6; }
+  .content p { margin-bottom: 8px; }
+  .content h4 { font-size: 10.5px; margin: 10px 0 4px; color: #1a3a5c; }
+  .content ul { padding-left: 18px; margin-bottom: 6px; }
+  .content ul li { margin-bottom: 3px; }
+  code { background: #eef2f7; padding: 1px 4px; font-size: 10px; border-radius: 2px; }
+
+  /* ── FOOTER ── */
+  .footer-line { border-top: 1px solid #ccc; margin: 20px 0 10px; }
+  .footer {
+    display: flex; justify-content: space-between; align-items: flex-end;
+    padding: 0 28px; font-size: 10px;
+  }
+  .footer-sig { text-align: right; }
+  .footer-sig strong { display: block; font-size: 11px; margin-bottom: 2px; }
+  .footer-bar {
+    background: #1a3a5c; color: #aac4e0; text-align: center;
+    padding: 6px; font-size: 9px; margin-top: 16px;
+  }
+
+  @page { margin: 18mm 18mm 18mm 18mm; size: A4; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo-box">EB</div>
+    <div class="header-company">
+      <strong>E. BARBIERI</strong>
+      <span>CONSULTORIA EM TECNOLOGIA</span>
+    </div>
+  </div>
+  <div class="header-right">
+    <strong>Relat&oacute;rio de Servi&ccedil;o</strong><br>Executado
+  </div>
+</div>
+
+<!-- TITLE -->
+<div class="title-banner">RELAT&Oacute;RIO DE SERVI&Ccedil;O EXECUTADO</div>
+<div class="subtitle-banner">
+  Melhoria no Relat&oacute;rio de Autoriza&ccedil;&atilde;o de Pagamento de Importa&ccedil;&otilde;es &mdash; Agente Comissionado (RJFINR01)
+</div>
+
+<!-- 1. IDENTIFICACAO -->
+<div class="section">
+  <div class="section-header">1. Identifica&ccedil;&atilde;o do Atendimento</div>
+  <table class="info">
+    <tr><td>Cliente</td><td>CANTU</td></tr>
+    <tr><td>Projeto</td><td><strong>Melhoria no Relat&oacute;rio de Autoriza&ccedil;&atilde;o de Pagamento de Importa&ccedil;&otilde;es &mdash; Cadastro e Impress&atilde;o de Agente Comissionado (RJFINR01 / CADAGFORN)</strong></td></tr>
+    <tr><td>Consultor</td><td>Edison Greski Barbieri</td></tr>
+    <tr><td>Data</td><td>19/06/2026</td></tr>
+    <tr><td>Hora In&iacute;cio</td><td>08:00</td></tr>
+    <tr><td>Hora Final</td><td>13:00</td></tr>
+    <tr><td>Total Horas</td><td><strong>5:00 horas</strong></td></tr>
+  </table>
+</div>
+
+<!-- 2. ESCOPO -->
+<div class="section">
+  <div class="section-header">2. Escopo Executado</div>
+  <div class="content">
+    <p>
+      Implementa&ccedil;&atilde;o de melhorias no relat&oacute;rio de autoriza&ccedil;&atilde;o de pagamento de importa&ccedil;&otilde;es
+      no TOTVS Protheus, abrangendo o cadastro de agente comissionado vinculado ao fornecedor,
+      a integra&ccedil;&atilde;o com o relat&oacute;rio de impress&atilde;o e o c&aacute;lculo e exibi&ccedil;&atilde;o dos
+      valores separados por benefici&aacute;rio e agente.
+    </p>
+
+    <h4>Item 1 &mdash; Remo&ccedil;&atilde;o de Coment&aacute;rios Legados (RJFINR01.PRW)</h4>
+    <ul>
+      <li>Removidos 11 blocos de coment&aacute;rios antigos com caracteres box-drawing corrompidos em CP-1252.</li>
+      <li>Total de 121 linhas removidas, preservando integralmente o encoding Windows-1252 do arquivo.</li>
+      <li>Fonte passou de 853 para 732 linhas, eliminando ru&iacute;do visual no editor.</li>
+    </ul>
+
+    <h4>Item 2 &mdash; Desenvolvimento da Rotina de Cadastro de Agente (CADAGFORN.PRW)</h4>
+    <ul>
+      <li>Cria&ccedil;&atilde;o do fonte <strong>CADAGFORN.PRW</strong> para manuten&ccedil;&atilde;o da tabela ZAG (agente comissionado por fornecedor).</li>
+      <li>Interface com campos: Nome do Agente, Banco (SA6), Ag&ecirc;ncia, Conta, D&iacute;gito Verificador, % Comiss&atilde;o e Instru&ccedil;&otilde;es de Pagamento (campo memo).</li>
+      <li>Valida&ccedil;&atilde;o do banco no cadastro SA6 com mensagem ao usu&aacute;rio.</li>
+      <li>Suporte a inclus&atilde;o, altera&ccedil;&atilde;o e exclus&atilde;o l&oacute;gica via bot&otilde;es na dialog.</li>
+      <li>Chamada via <em>MATA020 &gt; Outras A&ccedil;&otilde;es &gt; &ldquo;Agente Comis.&rdquo;</em>.</li>
+    </ul>
+
+    <h4>Item 3 &mdash; Integra&ccedil;&atilde;o com Tabela ZAG no Relat&oacute;rio (RJFINR01.PRW)</h4>
+    <ul>
+      <li>Busca autom&aacute;tica dos dados do agente por filial + c&oacute;digo + loja do fornecedor (seek na ZAG).</li>
+      <li>Bloco de impress&atilde;o do agente: nome, banco, ag&ecirc;ncia, conta com d&iacute;gito verificador, percentual de comiss&atilde;o e memo de instru&ccedil;&otilde;es.</li>
+      <li>Bloco exibido somente quando existe registro na ZAG para o fornecedor selecionado.</li>
+    </ul>
+
+    <h4>Item 4 &mdash; C&aacute;lculo e Exibi&ccedil;&atilde;o dos Valores Separados</h4>
+    <ul>
+      <li>C&aacute;lculo do valor a pagar ao agente: <code>nValAgt := nVALTOT * nPercmAgt / 100</code></li>
+      <li>C&aacute;lculo do valor l&iacute;quido ao benefici&aacute;rio: <code>nValBenef := nVALTOT - nValAgt</code></li>
+      <li>Se n&atilde;o houver agente (% = 0), o valor total &eacute; atribu&iacute;do integralmente ao benefici&aacute;rio.</li>
+      <li>Layout atualizado: r&oacute;tulos &ldquo;Valor a ser pago para o Benefici&aacute;rio&rdquo; e &ldquo;Valor a ser pago para o Agente Comissionado&rdquo; exibidos antes de cada caixa de dados bancários.</li>
+      <li>Caixas renomeadas para &ldquo;Dados para pagamento (Benefici&aacute;rio)&rdquo; e &ldquo;Dados para pagamento (Agente)&rdquo;.</li>
+    </ul>
+  </div>
+</div>
+
+<!-- 3. AMBIENTE -->
+<div class="section">
+  <div class="section-header">3. Ambiente T&eacute;cnico</div>
+  <table class="info">
+    <tr><td>Plataforma</td><td>TOTVS Protheus ERP</td></tr>
+    <tr><td>Linguagem</td><td>AdvPL</td></tr>
+    <tr><td>Fontes alterados</td><td>RJFINR01.PRW (relat&oacute;rio) &nbsp;/&nbsp; CADAGFORN.PRW (cadastro)</td></tr>
+    <tr><td>Tabela customizada</td><td>ZAG &mdash; Agente Comissionado por Fornecedor (filial + A2_COD + A2_LOJA)</td></tr>
+    <tr><td>Tabelas acessadas</td><td>SA2 (fornecedores), SA6 (bancos), SE1 (t&iacute;tulos), ZAG</td></tr>
+    <tr><td>Encoding dos fontes</td><td>Windows-1252 (CP-1252) &mdash; preservado em todos os arquivos</td></tr>
+    <tr><td>Integra&ccedil;&atilde;o</td><td>MATA020 &gt; Outras A&ccedil;&otilde;es &mdash; chamada U_CADAGFORN()</td></tr>
+  </table>
+</div>
+
+<!-- 4. FINANCEIRO -->
+<div class="section">
+  <div class="section-header">4. Resumo Financeiro</div>
+  <table class="data">
+    <thead>
+      <tr>
+        <th>Descri&ccedil;&atilde;o</th>
+        <th>Total de Horas</th>
+        <th>Valor Hora T&eacute;cnica</th>
+        <th>Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Atendimento</td>
+        <td><strong>5:00</strong></td>
+        <td>R$ 120,00</td>
+        <td><strong>R$ 600,00</strong></td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- 5. REPRESENTANTE -->
+<div class="section">
+  <div class="section-header">5. Representante do Cliente</div>
+  <table class="info">
+    <tr><td>Representante</td><td><strong>Peterson Cantu</strong></td></tr>
+    <tr><td>Cargo</td><td>&nbsp;</td></tr>
+  </table>
+</div>
+
+<!-- ASSINATURAS -->
+<div class="footer-line"></div>
+<div class="footer">
+  <div>Pato Branco/PR, 19 de junho de 2026</div>
+  <div class="footer-sig">
+    <strong>Edison Greski Barbieri</strong>
+    Consultor T&eacute;cnico &mdash; E. Barbieri Consultoria em Tecnologia
+  </div>
+</div>
+
+<div class="footer-bar">
+  E. Barbieri Consultoria em Tecnologia &nbsp;|&nbsp; Pato Branco/PR &nbsp;|&nbsp; P&aacute;gina 1
+</div>
+
+</body>
+</html>
