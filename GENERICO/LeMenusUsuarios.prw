@@ -81,13 +81,6 @@ IF ( ( nPswRec := spf_seek( cPswFile , "1U"+cUserId , 1 ) ) <= 0 )
 	Break
 EndIF
 
-IF Type( "cEmpAnt" ) <> "C"
-	Private cEmpAnt := "01"
-EndIF
-IF Type( "cFilAnt" ) <> "C"
-	Private cFilAnt := "01"
-EndIF
-
 //Obtenho as Informacoes do usuario  retornadas por referencia na variavel cPswDet)
 spf_GetFields( @cPswFile , @nPswRec , @cPswId, @cPswName, @cPswPwd, @cPswDet )
 

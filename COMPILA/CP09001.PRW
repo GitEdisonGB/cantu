@@ -1598,13 +1598,7 @@ IF !empty(aParam)
 								cFilArq	:= aEmpExtrato[3,2]
 		
 								dbCloseAll() //Fecho todos os arquivos abertos
-								OpenSM0() //Abrir Tabela SM0 (Empresa/Filial)
-								dbSelectArea("SM0") //Abro a SM0
-								SM0->(dbSetOrder(1))
-								SM0->(dbSeek(cEmpArq+cFilArq,.T.)) //Posiciona Empresa
-								cEmpAnt := SM0->M0_CODIGO //Seto as variaveis de ambiente
-								cFilAnt := SM0->M0_CODFIL
-								OpenFile(cEmpAnt + cFilAnt) //Abro a empresa que eu desejo trabalhar
+								PREPARE ENVIRONMENT EMPRESA cEmpArq FILIAL cFilArq //Troca para a empresa que eu desejo trabalhar
 							ENDIF
 						
 							aRetAux	:= U_CP901IMP(aArqTXT[nI], .T.) 

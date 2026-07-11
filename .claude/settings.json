@@ -11,7 +11,11 @@
       "WebFetch(domain:tdn.totvs.com)",
       "WebFetch(domain:devforum.totvs.com.br)",
       "Read(//c//**)",
-      "Bash(git config *)"
+      "Bash(git config *)",
+      "WebFetch(domain:www.fbsolutions.com.br)",
+      "WebFetch(domain:blog.reitz.dev.br)",
+      "WebFetch(domain:www.2fconsultoria.com.br)",
+      "WebFetch(domain:www.blacktdn.com.br)"
     ]
   }
 }
