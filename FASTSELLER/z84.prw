@@ -46,6 +46,7 @@ Static Function MENUDEF()
 	AADD(aOpcoes, {"Alterar"	, "U_Z84ALT()"		, 0, 4})
 	AADD(aOpcoes, {"Excluir"	, "AxDeleta" 	 	, 0, 5})
 	AADD(aOpcoes, {"Imp Tabela"	, "U_IMPZ84()" 	 	, 0, 3})
+	AADD(aOpcoes, {"Imp Preco XLS"	, "U_IMPZ84PRC()" 	, 0, 7})//Edison G. Barbieri 13/07/2026	
 	AADD(aOpcoes, {"Faixas Preco" , "U_Altparfx()" 	, 0, 6})
 
 Return aOpcoes
