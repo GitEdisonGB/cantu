@@ -1,0 +1,309 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+Namespace cantu.integracao.whatsapp
+
+/*/{Protheus.doc} ConsTitWA
+Endpoint REST (GET) para consulta de titulos em aberto (contas a receber)
+por CPF/CNPJ, com apoio de LLM via integracao WhatsApp. POC.
+@type Function
+@author Edison G. Barbieri
+@since 13/07/2026
+@see .specs/features/whatsapp-titulos-abertos/design.md
+/*/
+
+//-------------------------------------------------------------------
+// GET /api/cantu/v1/titulosabertos
+// Query Params: cnpj (obrigatorio, CPF ou CNPJ, so digitos)
+// Response: 200 OK (encontrado ou nao encontrado) / 400 Bad Request / 500
+//-------------------------------------------------------------------
+@Get("/api/cantu/v1/titulosabertos")
+User Function GetTitulosAbertosWA() as Logical
+	Local jQuery      := oRest:getQueryRequest() as Json
+	Local cCnpj       := "" as Character
+	Local aClientes   := {} as Array
+	Local aTitulos    := {} as Array
+	Local jResp       := JsonObject():New() as Json
+	Local jCliente    := Nil as Json
+
+	If jQuery <> Nil
+		If jQuery["cnpj"] <> Nil
+			cCnpj := AllTrim(cValToChar(jQuery["cnpj"]))
+		EndIf
+	EndIf
+
+	If Empty(cCnpj)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, BuildErrorWA("400", "Parametro 'cnpj' e obrigatorio"))
+	EndIf
+
+	If !ValidaDocWA(cCnpj)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, BuildErrorWA("400", "CPF/CNPJ informado e invalido"))
+	EndIf
+
+	Try
+		aClientes := BuscaCliWA(cCnpj)
+
+		If Len(aClientes) == 0
+			jResp["status"] := "not_found"
+			oRest:setKeyHeaderResponse("Content-Type", "application/json")
+			Return oRest:setStatusResponse(200, jResp:toJson())
+		EndIf
+
+		jCliente := aClientes[1]
+		aTitulos := BuscaTitWA(jCliente["codigo"], jCliente["loja"])
+
+		jResp["status"]  := "found"
+		jResp["cliente"] := jCliente
+		jResp["titulos"] := aTitulos
+
+	Catch oError
+		FWLogMsg("ERROR", , "REST", "GetTitulosAbertosWA", , "01", oError:Description, 0, 0, {})
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, BuildErrorWA("500", "Erro interno ao consultar titulos"))
+	EndTry
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jResp:toJson())
+
+//-------------------------------------------------------------------
+// Busca cliente(s) no SA1 diretamente por CPF/CNPJ (A1_CGC). Identidade
+// e confirmada so pelo documento - nao ha mais busca/filtro por telefone
+// (decisao revisada: telefone de cadastro e fragil demais como filtro
+// primario, CPF/CNPJ e o identificador confiavel).
+//-------------------------------------------------------------------
+Static Function BuscaCliWA(cCnpj as Character) as Array
+	Local cAlias    := GetNextAlias() as Character
+	Local cQuery    := "" as Character
+	Local oStatement as Object
+	Local aRet      := {} as Array
+
+	cQuery := "SELECT A1_FILIAL, A1_COD, A1_LOJA, A1_NOME "
+	cQuery += "FROM " + RetSqlName("SA1") + " SA1 "
+	cQuery += "WHERE SA1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND SA1.A1_CGC = ? "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cCnpj)
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	Do While !(cAlias)->(Eof())
+		aAdd(aRet, JsonObject():New())
+		aRet[Len(aRet)]["filial"] := AllTrim((cAlias)->A1_FILIAL)
+		aRet[Len(aRet)]["codigo"] := AllTrim((cAlias)->A1_COD)
+		aRet[Len(aRet)]["loja"]   := AllTrim((cAlias)->A1_LOJA)
+		aRet[Len(aRet)]["nome"]   := AllTrim((cAlias)->A1_NOME)
+		(cAlias)->(DBSkip())
+	EndDo
+
+	(cAlias)->(DBCloseArea())
+
+Return aRet
+
+//-------------------------------------------------------------------
+// Busca titulos em aberto (SE1) do cliente identificado, em TODAS as
+// empresas do ambiente (nao so a empresa corrente do AppServer REST).
+// O mesmo codigo/loja de cliente vale em todas as empresas (confirmado
+// pelo usuario). Nao usa RpcSetEnv (proibido em REST - risco real de
+// vazar contexto de empresa entre requisicoes concorrentes na mesma
+// thread do AppServer); em vez disso, lista as empresas via FWLoadSM0()
+// e monta o nome fisico da tabela pela convencao <alias>+<empresa>+"0",
+// ja usada de forma ativa em outros fontes reais do cantu (ex.:
+// WFNPEPLM.prw, MT100TOK.PRW, nfesefaz.prw).
+//-------------------------------------------------------------------
+Static Function BuscaTitWA(cCliente as Character, cLoja as Character) as Array
+	Local aEmpresas := FWLoadSM0() as Array
+	Local aCodEmp   := {} as Array
+	Local cAlias    := GetNextAlias() as Character
+	Local cQuery    := "" as Character
+	Local oStatement as Object
+	Local aRet      := {} as Array
+	Local nI        := 0 as Numeric
+
+	For nI := 1 To Len(aEmpresas)
+		If AScan(aCodEmp, aEmpresas[nI][1]) == 0
+			aAdd(aCodEmp, aEmpresas[nI][1])
+		EndIf
+	Next nI
+
+	If Len(aCodEmp) == 0
+		Return aRet
+	EndIf
+
+	For nI := 1 To Len(aCodEmp)
+		If nI > 1
+			cQuery += "UNION ALL "
+		EndIf
+		cQuery += "SELECT E1_PREFIXO, E1_NUM, E1_PARCELA, E1_TIPO, E1_VENCTO, E1_VALOR, E1_SALDO "
+		cQuery += "FROM SE1" + aCodEmp[nI] + "0 SE1 "
+		cQuery += "WHERE SE1.D_E_L_E_T_ = ' ' "
+		cQuery += "AND SE1.E1_CLIENTE = ? "
+		cQuery += "AND SE1.E1_LOJA = ? "
+		cQuery += "AND SE1.E1_SALDO > 0 "
+	Next nI
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+
+	For nI := 1 To Len(aCodEmp)
+		oStatement:SetString((nI - 1) * 2 + 1, cCliente)
+		oStatement:SetString((nI - 1) * 2 + 2, cLoja)
+	Next nI
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	Do While !(cAlias)->(Eof())
+		aAdd(aRet, JsonObject():New())
+		aRet[Len(aRet)]["prefixo"]  := AllTrim((cAlias)->E1_PREFIXO)
+		aRet[Len(aRet)]["numero"]   := AllTrim((cAlias)->E1_NUM)
+		aRet[Len(aRet)]["parcela"]  := AllTrim((cAlias)->E1_PARCELA)
+		aRet[Len(aRet)]["tipo"]     := AllTrim((cAlias)->E1_TIPO)
+		aRet[Len(aRet)]["vencimento"] := DtVencWA((cAlias)->E1_VENCTO)
+		aRet[Len(aRet)]["valor"]    := (cAlias)->E1_VALOR
+		aRet[Len(aRet)]["saldo"]    := (cAlias)->E1_SALDO
+		(cAlias)->(DBSkip())
+	EndDo
+
+	(cAlias)->(DBCloseArea())
+
+Return aRet
+
+//-------------------------------------------------------------------
+// Monta resposta de erro no padrao TTALK
+//-------------------------------------------------------------------
+Static Function BuildErrorWA(cCode as Character, cMessage as Character) as Character
+	Local jError := JsonObject():New() as Json
+
+	jError["code"]           := cCode
+	jError["message"]        := cMessage
+	jError["detailedMessage"] := cMessage
+
+Return jError:toJson()
+
+//-------------------------------------------------------------------
+// Valida CPF (11 digitos) ou CNPJ (14 digitos) pelo digito verificador
+// (modulo 11). Rejeita sequencias de digitos repetidos (ex.: uma string
+// de zeros) - documento real nunca segue esse padrao, mas passaria numa
+// checagem so de tamanho.
+//-------------------------------------------------------------------
+Static Function ValidaDocWA(cDoc as Character) as Logical
+	Local lRet := .F. as Logical
+
+	If Len(cDoc) == 11
+		lRet := ValCpfWA(cDoc)
+	ElseIf Len(cDoc) == 14
+		lRet := ValCnpjWA(cDoc)
+	EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+// Digito verificador de CPF.
+//-------------------------------------------------------------------
+Static Function ValCpfWA(cCpf as Character) as Logical
+	Local aPeso1 := {10,9,8,7,6,5,4,3,2} as Array
+	Local aPeso2 := {11,10,9,8,7,6,5,4,3,2} as Array
+	Local nDig1  := 0 as Numeric
+	Local nDig2  := 0 as Numeric
+	Local lRet   := .T. as Logical
+
+	If DocRepetWA(cCpf)
+		Return .F.
+	EndIf
+
+	nDig1 := DigVerifWA(cCpf, aPeso1, 9)
+	nDig2 := DigVerifWA(cCpf, aPeso2, 10)
+
+	If nDig1 <> Val(SubStr(cCpf, 10, 1)) .Or. nDig2 <> Val(SubStr(cCpf, 11, 1))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+// Digito verificador de CNPJ.
+//-------------------------------------------------------------------
+Static Function ValCnpjWA(cCnpj as Character) as Logical
+	Local aPeso1 := {5,4,3,2,9,8,7,6,5,4,3,2} as Array
+	Local aPeso2 := {6,5,4,3,2,9,8,7,6,5,4,3,2} as Array
+	Local nDig1  := 0 as Numeric
+	Local nDig2  := 0 as Numeric
+	Local lRet   := .T. as Logical
+
+	If DocRepetWA(cCnpj)
+		Return .F.
+	EndIf
+
+	nDig1 := DigVerifWA(cCnpj, aPeso1, 12)
+	nDig2 := DigVerifWA(cCnpj, aPeso2, 13)
+
+	If nDig1 <> Val(SubStr(cCnpj, 13, 1)) .Or. nDig2 <> Val(SubStr(cCnpj, 14, 1))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+// Calcula 1 digito verificador (modulo 11) a partir dos pesos informados.
+//-------------------------------------------------------------------
+Static Function DigVerifWA(cDoc as Character, aPeso as Array, nQtd as Numeric) as Numeric
+	Local nSoma  := 0 as Numeric
+	Local nResto := 0 as Numeric
+	Local nI     := 0 as Numeric
+	Local nDig   := 0 as Numeric
+
+	For nI := 1 To nQtd
+		nSoma += Val(SubStr(cDoc, nI, 1)) * aPeso[nI]
+	Next nI
+
+	nResto := nSoma % 11
+
+	If nResto < 2
+		nDig := 0
+	Else
+		nDig := 11 - nResto
+	EndIf
+
+Return nDig
+
+//-------------------------------------------------------------------
+// Verifica se todos os digitos da string sao iguais (ex.: 00000000000000)
+// - nunca e um CPF/CNPJ real emitido, mesmo quando o digito verificador
+// bateria matematicamente.
+//-------------------------------------------------------------------
+//-------------------------------------------------------------------
+// Formata data de vencimento vinda de query generica (TCGenQry/UNION
+// ALL) - campos DATE do Oracle podem nao retornar tipados como "D"
+// nativo nesse tipo de consulta, as vezes vem como Character no
+// formato YYYYMMDD. Trata os dois casos defensivamente.
+//-------------------------------------------------------------------
+Static Function DtVencWA(xValor as Variant) as Character
+	Local cRet := "" as Character
+
+	If ValType(xValor) == "D"
+		cRet := DToC(xValor)
+	ElseIf ValType(xValor) == "C"
+		If Len(AllTrim(xValor)) == 8
+			cRet := DToC(STOD(xValor))
+		Else
+			cRet := AllTrim(xValor)
+		EndIf
+	EndIf
+
+Return cRet
+Static Function DocRepetWA(cDoc as Character) as Logical
+	Local cPrimeiro := SubStr(cDoc, 1, 1) as Character
+	Local nI        := 0 as Numeric
+	Local lRet      := .T. as Logical
+
+	For nI := 2 To Len(cDoc)
+		If SubStr(cDoc, nI, 1) <> cPrimeiro
+			lRet := .F.
+			Exit
+		EndIf
+	Next nI
+
+Return lRet
