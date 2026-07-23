@@ -1,8 +1,8 @@
 # Consulta de Títulos em Aberto via WhatsApp — Tasks
 
 **Design**: `.specs/features/whatsapp-titulos-abertos/design.md`
-**Status**: Done (lado Protheus) — endpoint REST validado end-to-end no AppServer real, identificação por CPF/CNPJ + busca de títulos multi-empresa confirmadas funcionando (T9). T1-T7 descrevem a versão anterior (busca por telefone), superada por T8/T9.
-**Escopo:** lado Protheus (endpoint REST) — **concluído e testado** (`06586594995` → título real retornado corretamente). Serviço de orquestração Python — reescrito em projeto irmão separado (`../cantu-whatsapp-ia/`, fora do repositório AdvPL/TLPP conforme design) para o fluxo CPF/CNPJ-first com memória de sessão; sintaxe validada, mas **nenhum teste real rodado ainda** contra o endpoint atualizado. Falta: o usuário rodar o setup real do WhatsApp (Meta for Developers, ngrok, `.env`) e o teste ponta a ponta completo.
+**Status**: Done (lado Protheus) — endpoint REST validado end-to-end no AppServer real, identificação por CPF/CNPJ + busca de títulos multi-empresa confirmadas funcionando (T9). T1-T7 descrevem a versão anterior (busca por telefone), superada por T8/T9. **Lado WhatsApp bloqueado por erro externo da Meta (ver T10) — pausado até 2026-07-21 ou liberação do bloqueio.**
+**Escopo:** lado Protheus (endpoint REST) — **concluído e testado** (`06586594995` → título real retornado corretamente). Serviço de orquestração Python — implementado e configurado (venv, `.env`, `uvicorn`, `ngrok`, webhook Meta verificado e app inscrito na WABA); webhook recebe mensagens corretamente, mas o **envio de resposta está bloqueado pelo erro 130497 da Meta** ("Business account is restricted from messaging users in this country") — não é bug nosso, é restrição do lado da Meta pra essa conta de teste. Ver T10.
 
 ---
 
@@ -158,3 +158,25 @@ T1 → T2 → T3 → T4 → T5 → T6 → T7
 
 **Tests**: sem TIR aplicável. Testado via curl contra `CO9W3L_PROD_COMP` real, múltiplas rodadas (documento inválido, zerado, CPF real com título).
 **Gate**: **concluído** — endpoint funcional ponta a ponta no lado Protheus
+
+---
+
+### T10: Setup e teste ponta a ponta do WhatsApp — bloqueado por restrição externa da Meta
+
+**What**: Serviço Python configurado e funcionando (venv, `.env`, `uvicorn`, `ngrok` com domínio fixo `those-online-mammogram.ngrok-free.dev`), app `cantu-whats-poc` criado no Meta for Developers, webhook configurado/verificado, app inscrito manualmente na WABA via `POST /{waba-id}/subscribed_apps` (o assistente do Meta não faz essa inscrição sozinho — sem ela, nenhuma mensagem recebida chega no nosso webhook). Verificação de empresa da Meta concluída ("E BARBIERI CONSULTORIA EM TECNOLOGIA DA INFORMACAO LTDA"). Webhook recebe mensagens do usuário corretamente (confirmado nos logs). **Porém o envio de resposta está bloqueado pelo erro 130497** ("Business account is restricted from messaging users in this country") — restrição da Meta pra mensagens saindo pra números brasileiros nessa conta de teste, não resolvida por verificação de empresa nem por completar perfil/endereço/moeda da conta. Comportamento intermitente (uma tentativa isolada "passou" na aceitação da API mas falhou depois no status assíncrono).
+**Where**: `../cantu-whatsapp-ia/` (fora do repo AdvPL/TLPP) + configuração externa no Meta for Developers/Business Manager
+**Depends on**: T9 (endpoint Protheus pronto)
+**Requirement**: teste ponta a ponta completo da feature
+
+**Done when**:
+- [x] Ambiente Python configurado e validado (venv, dependências, `.env` completo)
+- [x] `ngrok` instalado, autenticado, túnel com domínio fixo funcionando
+- [x] Webhook configurado e verificado no Meta, campo `messages` inscrito
+- [x] App inscrito na WABA (`subscribed_apps`) — sem isso nenhuma mensagem recebida chegava no webhook
+- [x] Bug real corrigido: `whatsapp_client.py` normaliza número BR sem o 9º dígito (`_normaliza_numero_br`) — o campo `from` do webhook vem sem o 9, mas a API de envio exige o número completo
+- [x] Verificação de empresa da Meta concluída
+- [ ] **Bloqueado**: erro 130497 impede qualquer resposta do bot chegar no WhatsApp do usuário — decisão do usuário (2026-07-16) foi pausar até 2026-07-21 ou até abrir chamado de suporte com a Meta
+- [ ] **Pendente**: teste ponta a ponta real (usuário manda CPF/CNPJ, recebe títulos formatados) — só pode ser confirmado depois do bloqueio acima resolvido
+
+**Tests**: sem TIR aplicável (fora do escopo AdvPL/TLPP). Testado manualmente via WhatsApp real + inspector do ngrok + curl direto na Graph API da Meta.
+**Gate**: **bloqueado por fator externo** (Meta) — lado Protheus e lado Python ambos prontos e sem bugs conhecidos pendentes; só falta a Meta liberar o envio pra esse número/conta de teste
