@@ -222,7 +222,7 @@ Chamada a partir do botao "Procurar" do painel de selecao de arquivo.
 @return NIL
 /*/
 Static Function xOnSelXLS(oGet)
-	Local cPathSel	:= cGetFile( 'Arquivo Excel |*.xlsx' , 'Selecione o arquivo *.XLSX',1,'C:\',.F.,nOr(GETF_LOCALHARD,GETF_NETWORKDRIVE),.F.,.T. )
+	Local cPathSel	:= cGetFile( 'Arquivo Excel (*.xlsx)|*.xlsx|Arquivo Excel 97-2003 (*.xls)|*.xls' , 'Selecione o arquivo Excel (*.XLSX ou *.XLS)',1,'C:\',.F.,nOr(GETF_LOCALHARD,GETF_NETWORKDRIVE),.F.,.T. )
 	Local lPronto	:= .F.
 
 	If !Empty(cPathSel)
@@ -339,12 +339,15 @@ Return .T.
 Processa a atualizacao do preco de venda na tabela Z84 a partir do arquivo
 CSV convertido. Para cada produto do arquivo, localiza todos os registros
 da filial/tabela informada (todas as faixas ja cadastradas) e atualiza o
-campo Z84_PRECO. Quando o produto tem Z84_ATUPRC = "S", recalcula tambem
-Z84_REPROD e Z84_CUPROD com base no novo preco e nos percentuais de
-rentabilidade/custo da propria tabela (Z84_RENTAB/Z84_PRCCUS), replicando
-a mesma regra usada na tela (Z84ATCPO). Oferta, desconto e acrescimo nao
-sao alterados. Produtos nao localizados sao apenas registrados em log e
-sinalizados ao final, sem inclusao automatica.
+campo Z84_PRECO. Sempre recalcula tambem Z84_REPROD e Z84_CUPROD com base
+no novo preco e nos percentuais de rentabilidade/custo da propria tabela
+(Z84_RENTAB/Z84_PRCCUS), independente do produto estar marcado para
+atualizacao automatica de preco (Z84_ATUPRC) -- garante que rentabilidade
+e custo nunca fiquem desatualizados em relacao ao preco, evitando bloqueio
+na validacao de "preco menor que a rentabilidade" ao alterar a tabela
+manualmente. Oferta, desconto e acrescimo nao sao alterados. Produtos nao
+localizados sao apenas registrados em log e sinalizados ao final, sem
+inclusao automatica.
 @type Static Function
 @author Edison G. Barbieri
 @since 13/07/2026
@@ -366,6 +369,11 @@ Static Function xImpPRC(oPanel)
 	Local cQuery	:= ""
 	Local cAliasQ	:= GetNextAlias()
 	Local lCabec	:= .T.
+	Local lPrecoMudou:= .F.
+	Local lRecalcRC	:= .F.
+	Local nRepCalc	:= 0
+	Local nCuCalc	:= 0
+	Local cLogDet	:= ""
 
 	If	nHandle == -1
 		nError := fError()
@@ -428,16 +436,33 @@ Static Function xImpPRC(oPanel)
 					DBSelectArea("Z84")
 					Z84->(dbGoTo((cAliasQ)->RNO))
 
-					If Z84->Z84_PRECO <> nPrecoNovo
+					lPrecoMudou := Z84->Z84_PRECO <> nPrecoNovo
+					nRepCalc    := Round(nPrecoNovo * ((100 - Z84->Z84_RENTAB) / 100),2)
+					nCuCalc     := Round(nPrecoNovo * ((100 - Z84->Z84_PRCCUS) / 100),2)
+					lRecalcRC   := .F.
+
+					If Z84->Z84_REPROD <> nRepCalc .or. Z84->Z84_CUPROD <> nCuCalc
+						lRecalcRC := .T.
+					EndIf
+
+					If lPrecoMudou .or. lRecalcRC
 						RecLock("Z84",.F.)
-						Z84->Z84_PRECO := nPrecoNovo
-						If Z84->Z84_ATUPRC == "S"
-							Z84->Z84_REPROD := Round(nPrecoNovo * ((100 - Z84->Z84_RENTAB) / 100),2)
-							Z84->Z84_CUPROD := Round(nPrecoNovo * ((100 - Z84->Z84_PRCCUS) / 100),2)
+						If lPrecoMudou
+							Z84->Z84_PRECO := nPrecoNovo
+						EndIf
+						If lRecalcRC
+							Z84->Z84_REPROD := nRepCalc
+							Z84->Z84_CUPROD := nCuCalc
 						EndIf
 						Z84->(MsUnlock())
 						nAlt++
-						xAddLog("PRECO ALTERADO - PRODUTO " + cProd + " (" + cDescArq + ") FAIXA " + AllTrim(cValToChar(Z84->Z84_FAIXA)) + " NOVO PRECO " + AllTrim(Str(nPrecoNovo,14,2)))
+
+						cLogDet := ""
+						If lRecalcRC
+							cLogDet := " / RENT-CUSTO RECALCULADOS"
+						EndIf
+
+						xAddLog("PRODUTO " + cProd + " (" + cDescArq + ") FAIXA " + AllTrim(cValToChar(Z84->Z84_FAIXA)) + " - PRECO " + AllTrim(Str(nPrecoNovo,14,2)) + cLogDet)
 					EndIf
 
 					(cAliasQ)->(dbSkip())
