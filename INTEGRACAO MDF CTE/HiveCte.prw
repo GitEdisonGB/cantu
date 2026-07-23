@@ -1001,6 +1001,9 @@ Static Function ManFin(oJSF2, nOpc, cError)
 	AAdd(aSE1, {"E1_CLIENTE", oJSF2["F2_CLIENTE"],                           Nil})
 	AAdd(aSE1, {"E1_LOJA",    oJSF2["F2_LOJA"],                              Nil})
 	AAdd(aSE1, {"E1_EMISSAO", oJSF2["F2_EMISSAO"],                           Nil})
+	// Sem isso o FINA040 assume Date() do momento do ExecAuto como contabilizacao,
+	// divergindo da emissao quando o job roda em dia posterior a emissao do CT-e.
+	AAdd(aSE1, {"E1_EMIS1",  oJSF2["F2_EMISSAO"],                           Nil})
 	AAdd(aSE1, {"E1_VENCTO",  oJSF2["F2_EMISSAO"] + 15,                     Nil})
 	AAdd(aSE1, {"E1_VENCREA", DataValida(oJSF2["F2_EMISSAO"] + 15, .T.),    Nil})
 	AAdd(aSE1, {"E1_VALOR",   oJSF2["F2_VALBRUT"],                           Nil})
@@ -1155,7 +1158,11 @@ Static Function SaveLogHV(cChave, cTipo, cError, cJson)
 		(cXMLCTM)->&(cIniXMLCTM + "XML")    := cJson
 		(cXMLCTM)->(MsUnlock())
 
-		If (nTry + 1) >= nMaxTry
+		// So notifica quando a tentativa atual falhou; sem essa checagem, uma vez
+		// que TRY chegasse perto do limite por falhas anteriores, qualquer chamada
+		// seguinte (mesmo com sucesso) reenviava o e-mail, pois sucesso nao
+		// incrementa TRY nem bloqueia via HVTryEsgotado (STATUS volta pra "I").
+		If !Empty(cError) .AND. (nTry + 1) >= nMaxTry
 			cBody := "Chave: " + cChave + "<br>Mensagem: " + cError
 			// TESTE: destinatario fixo pra validar o envio - reverter para cMail apos confirmar recebimento
 			U_CCMail("suporte@cantu.com.br", "Integracao CT-e HiveCloud", cBody)
