@@ -620,18 +620,18 @@ User Function MT410TOK()
 							lRet := fLogSUP()
 						Else
 							lRet := .F.
-						EndIf	
+						EndIf
 					ElseIf  AllTrim(M->C5_LOJACLI) == "0022"
 						lRet := Aviso("Aviso", 	"Para realizar a inclusão de devolução de transferência é necessária liberação de superior, deseja continuar? Caso sim entre em contato Ana Gisele Rocha Furtado - fone (46) 98802-1019", {"Sim","Não"}, 2)
 						If lRet == 1
 							lRet := fLogSUP()
 						Else
 							lRet := .F.
-						EndIf		
+						EndIf
 					EndIf
 
+					Return lRet
 				EndIf
-				Return lRet
 			EndIf
 		Next i
 

@@ -59,6 +59,10 @@
 //               Formato: CFOP1;TES1;CFOP2;TES2
 //   CC_CSTCTE   CSTs permitidos, separados por ponto-e-virgula
 //               Deixar em branco para nao validar CST
+//   CC_TESCPL   TES para CT-e de complemento de ICMS (finalidadeEmissao=
+//               COMPLEMENTAR na API). Default fonte: 5CT
+//   CC_SEGCPL   Segmento para CT-e de complemento de ICMS. Default fonte:
+//               002001002
 //==================================================================
 
 
@@ -659,6 +663,50 @@ Return oSF2
 
 
 //------------------------------------------------------------------
+// Funcao  : ExistSF2PorDoc (Static)
+// Descricao: Fallback do ExistSF2 para quando a origem do complemento foi
+//            lancada manualmente e no F2_CHVNFE nao ficou preenchido. Busca
+//            pela chave primaria real da SF2 (filial+doc+serie+cliente+loja),
+//            com doc/serie derivados da propria chave de acesso da origem
+//            e cliente/loja do tomador do complemento atual, sem precisar de
+//            outra chamada a API.
+// Parametros:
+//   cDoc      (C) - numero do documento (F2_DOC)
+//   cSerie    (C) - serie do documento (F2_SERIE)
+//   cCliente  (C) - codigo do cliente (F2_CLIENTE)
+//   cLoja     (C) - loja do cliente (F2_LOJA)
+// Retorno: oSF2 (O) - objeto JSON com os campos da SF2 ou Nil se nao encontrado
+//------------------------------------------------------------------
+Static Function ExistSF2PorDoc(cDoc, cSerie, cCliente, cLoja)
+	Local cAlias := GetNextAlias()
+	Local nField := 0
+	Local oSF2   := Nil
+
+	BeginSQL Alias cAlias
+        Column F2_EMISSAO As Date
+        SELECT SF2.*
+        FROM %Table:SF2% SF2
+        WHERE F2_FILIAL  = %XFilial:SF2%
+          AND F2_DOC     = %Exp:cDoc%
+          AND F2_SERIE   = %Exp:cSerie%
+          AND F2_CLIENTE = %Exp:cCliente%
+          AND F2_LOJA    = %Exp:cLoja%
+          AND SF2.%NotDel%
+	EndSQL
+
+	If !(cAlias)->(EOF())
+		oSF2 := JSONObject():New()
+		For nField := 1 To (cAlias)->(FCount())
+			oSF2[AllTrim((cAlias)->(FieldName(nField)))] := (cAlias)->(FieldGet(nField))
+		Next nField
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return oSF2
+
+
+//------------------------------------------------------------------
 // Funcao  : GetClient (Static)
 // Descricao: Localiza um cliente na SA1 pelo CNPJ ou CPF do tomador
 //            do CT-e. Utiliza o indice 3 (por CGC) para a busca.
@@ -718,8 +766,21 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Local dEmissao      := CToD("")
 	Local cMunOriHV     := ""
 	Local cMunDesHV     := ""
+	Local aChvComp      := {}
+	Local cChaveOri     := ""
+	Local cDocOri       := ""
+	Local cSerOri       := ""
+	Local oJSF2Ori      := Nil
+	Local cDocOriChv    := ""
+	Local cSerOriChv    := ""
+	Local nQuantSD2     := 1
+	Local nVlrItemSD2   := 0
+	Local cTesUsar      := ""
+	Local cSegUsar      := ""
+	Local cTipoUsar     := "N"
 	Private lAutoErrNoFile := .T.
 	Private lMsErroAuto    := .F.
+	Private lComplemento   := .F.
 	Private nPICMSHV       := 0
 	Private nValICMSHV     := 0
 	Private nBaseICMSHV    := 0
@@ -745,6 +806,41 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 		nPeso    := HVGetPeso(jCte)
 		dEmissao := HVDateToD(jCte["dataEmissao"])
 
+		// CT-e de complemento de ICMS: mesmo CFOP do CT-e normal, mas a API
+		// traz "finalidadeEmissao"="COMPLEMENTAR". Precisa localizar o CT-e
+		// original (chave em complementar.chavesAcesso) ja lancado na SF2,
+		// pra preencher D2_NFORI/D2_SERIORI/D2_ITEMORI. Sem a origem, nao ha
+		// como complementar - erro e ignora (nao reprocessa ate "Limpar Status").
+		lComplemento := AllTrim(Upper(cValToChar(jCte["finalidadeEmissao"]))) == "COMPLEMENTAR"
+
+		If lComplemento
+			aChvComp := jCte["complementar"]["chavesAcesso"]
+			If ValType(aChvComp) == "A" .And. Len(aChvComp) > 0
+				cChaveOri := StrTran(AllTrim(cValToChar(aChvComp[1])), "CTe", "")
+			EndIf
+
+			oJSF2Ori := ExistSF2(cChaveOri)
+
+			// Fallback: lancamento manual da origem pode nao ter preenchido F2_CHVNFE -
+			// deriva filial/doc/serie da propria chave (44 digitos) e busca por ali.
+			// Estrutura: cUF(2)+AAMM(4)+CNPJ(14)+mod(2)+serie(3)+nCT(9)+tpEmis(1)+cCT(8)+cDV(1)
+			If oJSF2Ori == Nil .And. Len(cChaveOri) == 44
+				cDocOriChv := SubStr(cChaveOri, 26, 9)
+				cSerOriChv := PadR(cValToChar(Val(SubStr(cChaveOri, 23, 3))), TamSX3("F2_SERIE")[1])
+				oJSF2Ori   := ExistSF2PorDoc(cDocOriChv, cSerOriChv, oJClient["A1_COD"], oJClient["A1_LOJA"])
+			EndIf
+
+			If Empty(cChaveOri) .Or. oJSF2Ori == Nil
+				cError := "CT-e de origem do complemento nao localizado no Protheus. Chave origem: " + cChaveOri
+				FreeObj(oTES)
+				Return .F.
+			EndIf
+
+			cDocOri := oJSF2Ori["F2_DOC"]
+			cSerOri := oJSF2Ori["F2_SERIE"]
+			FreeObj(oJSF2Ori)
+		EndIf
+
 		// A API HiveCloud nao retorna o codigo IBGE do municipio (a exemplo do
 		// cMunIni/cMunFim que o IntCtMdf le do XML), apenas o nome da cidade em
 		// "localInicioPrestaco"/"localFimPrestaco" (formato "CIDADE - UF").
@@ -759,8 +855,24 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			Return .F.
 		EndIf
 
+		// Complemento de ICMS: quantidade zerada, valor = valor do ICMS complementado
+		// (nao o valorTotalFrete, que vem zero pra esse tipo de CT-e), TES/segmento
+		// proprios via parametro (CC_TESCPL/CC_SEGCPL) e F2_TIPO="I" - valores
+		// confirmados em lancamento manual de teste (CTE 32361/serie 2).
+		If lComplemento
+			nVlrItemSD2 := nValICMSHV
+			cTesUsar    := SuperGetMV("CC_TESCPL", .F., "5CT")
+			cSegUsar    := SuperGetMV("CC_SEGCPL", .F., "002001002")
+			cTipoUsar   := "I"
+		Else
+			nVlrItemSD2 := nVlrFrete
+			cTesUsar    := oTES["codigo"]
+			cSegUsar    := cSegmto
+			cTipoUsar   := "N"
+		EndIf
+
 		AAdd(aSF2, {"F2_FORMUL",  "N",                                                                Nil})
-		AAdd(aSF2, {"F2_TIPO",    "N",                                                                Nil})
+		AAdd(aSF2, {"F2_TIPO",    cTipoUsar,                                                          Nil})
 		AAdd(aSF2, {"F2_DOC",     PadL(cValToChar(jCte["numero"]), TamSx3("F2_DOC")[1], "0"),         Nil})
 		AAdd(aSF2, {"F2_SERIE",   PadR(cValToChar(jCte["serie"]), TamSx3("F2_SERIE")[1]),             Nil})
 		AAdd(aSF2, {"F2_EMISSAO", dEmissao,                                                           Nil})
@@ -775,12 +887,25 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 		AAdd(aSD2, {})
 		AAdd(ATail(aSD2), {"D2_ITEM",   StrZero(1, TamSX3("D2_ITEM")[1]),                             Nil})
 		AAdd(ATail(aSD2), {"D2_COD",    cProd,                                                        Nil})
-		AAdd(ATail(aSD2), {"D2_QUANT",  1,                                                            Nil})
-		AAdd(ATail(aSD2), {"D2_PRCVEN", nVlrFrete,                                                    Nil})
-		AAdd(ATail(aSD2), {"D2_TOTAL",  nVlrFrete,                                                    Nil})
-		AAdd(ATail(aSD2), {"D2_TES",    oTES["codigo"],                                               Nil})
-		AAdd(ATail(aSD2), {"D2_CLVL",   cSegmto,                                                      Nil})
+		// Complemento de ICMS: D2_QUANT nao pode ser informado (AJUDA:COMPICM -
+		// campo controlado pelo motor fiscal quando F2_TIPO="I"), confirmado em teste real.
+		If !lComplemento
+			AAdd(ATail(aSD2), {"D2_QUANT",  nQuantSD2,                                                    Nil})
+		EndIf
+		AAdd(ATail(aSD2), {"D2_PRCVEN", nVlrItemSD2,                                                  Nil})
+		AAdd(ATail(aSD2), {"D2_TOTAL",  nVlrItemSD2,                                                  Nil})
+		AAdd(ATail(aSD2), {"D2_TES",    cTesUsar,                                                     Nil})
+		AAdd(ATail(aSD2), {"D2_CLVL",   cSegUsar,                                                     Nil})
 		AAdd(ATail(aSD2), {"D2_CCUSTO", cCC,                                                          Nil})
+
+		If lComplemento
+			AAdd(ATail(aSD2), {"D2_NFORI",   cDocOri,                                                 Nil})
+			AAdd(ATail(aSD2), {"D2_SERIORI", cSerOri,                                                 Nil})
+			AAdd(ATail(aSD2), {"D2_ITEMORI", StrZero(1, TamSX3("D2_ITEMORI")[1]),                     Nil})
+			AAdd(ATail(aSD2), {"D2_PICM",    nPICMSHV,                                                Nil})
+			// D2_VALICM tambem e AJUDA:COMPICM (controlado automaticamente pelo motor
+			// fiscal p/ F2_TIPO="I"), confirmado em teste real - nao informar.
+		EndIf
 
 		MaFisIni(oJClient["A1_COD"], oJClient["A1_LOJA"], "C", "N", oJClient["A1_TIPO"], ;
 			MaFisRelImp("MT100", {"SF2", "SD2"}), , .T., , , , , , , , , , , , , , , , , , , , , , , , , ;
@@ -820,8 +945,13 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			Next nField
 		EndIf
 
-		If (lMsErroAuto := !ManFin(oJSF2, nOpc, @cError))
-			DisarmTransaction()
+		// Complemento de ICMS e so ajuste fiscal (correcao de imposto do CT-e
+		// original) - nao gera titulo novo no financeiro, o servico ja foi faturado
+		// no CT-e original.
+		If !lComplemento
+			If (lMsErroAuto := !ManFin(oJSF2, nOpc, @cError))
+				DisarmTransaction()
+			EndIf
 		EndIf
 	EndIf
 	EndTran()

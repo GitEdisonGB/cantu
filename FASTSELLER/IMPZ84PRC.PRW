@@ -337,17 +337,19 @@ Return .T.
 
 /*/{Protheus.doc} xImpPRC
 Processa a atualizacao do preco de venda na tabela Z84 a partir do arquivo
-CSV convertido. Para cada produto do arquivo, localiza todos os registros
-da filial/tabela informada (todas as faixas ja cadastradas) e atualiza o
-campo Z84_PRECO. Sempre recalcula tambem Z84_REPROD e Z84_CUPROD com base
-no novo preco e nos percentuais de rentabilidade/custo da propria tabela
-(Z84_RENTAB/Z84_PRCCUS), independente do produto estar marcado para
-atualizacao automatica de preco (Z84_ATUPRC) -- garante que rentabilidade
-e custo nunca fiquem desatualizados em relacao ao preco, evitando bloqueio
-na validacao de "preco menor que a rentabilidade" ao alterar a tabela
-manualmente. Oferta, desconto e acrescimo nao sao alterados. Produtos nao
-localizados sao apenas registrados em log e sinalizados ao final, sem
-inclusao automatica.
+CSV convertido (colunas: Codigo, Produto, Preco Ideal, Margem %, Oferta).
+Para cada produto do arquivo, localiza todos os registros da filial/tabela
+informada (todas as faixas ja cadastradas) e atualiza o campo Z84_PRECO.
+Regra de rentabilidade/custo: quando Z84_ATUPRC = "S", recalcula
+Z84_REPROD/Z84_CUPROD com base no preco e nos percentuais de
+rentabilidade/custo da tabela (Z84_RENTAB/Z84_PRCCUS); quando
+Z84_ATUPRC = "N", mantem Z84_REPROD/Z84_CUPROD iguais ao Z84_PRECO, sem
+aplicar a formula. Regra de oferta: quando a coluna "Oferta" do arquivo
+vier marcada como "1" para o produto, forca Z84_ATUPRC := "N" e
+Z84_OFERTA := "S" (consequentemente Z84_REPROD/Z84_CUPROD passam a
+espelhar o preco, pela regra anterior). Desconto e acrescimo nao sao
+alterados. Produtos nao localizados sao apenas registrados em log e
+sinalizados ao final, sem inclusao automatica.
 @type Static Function
 @author Edison G. Barbieri
 @since 13/07/2026
@@ -371,8 +373,13 @@ Static Function xImpPRC(oPanel)
 	Local lCabec	:= .T.
 	Local lPrecoMudou:= .F.
 	Local lRecalcRC	:= .F.
+	Local lAtuprcMud:= .F.
+	Local lOfertaMud:= .F.
 	Local nRepCalc	:= 0
 	Local nCuCalc	:= 0
+	Local cOferta	:= ""
+	Local cAtuprcNv	:= ""
+	Local cOfertaNv	:= ""
 	Local cLogDet	:= ""
 
 	If	nHandle == -1
@@ -411,6 +418,10 @@ Static Function xImpPRC(oPanel)
 			cProd 		:= PadL(AllTrim(aLine[1]),8,"0")
 			cDescArq	:= AllTrim(aLine[2])
 			nPrecoNovo	:= xValTrans(aLine[3])
+			cOferta		:= ""
+			If Len(aLine) >= 5
+				cOferta := AllTrim(aLine[5])
+			EndIf
 
 			IncProc("Produto: " + cProd)
 
@@ -436,16 +447,28 @@ Static Function xImpPRC(oPanel)
 					DBSelectArea("Z84")
 					Z84->(dbGoTo((cAliasQ)->RNO))
 
-					lPrecoMudou := Z84->Z84_PRECO <> nPrecoNovo
-					nRepCalc    := Round(nPrecoNovo * ((100 - Z84->Z84_RENTAB) / 100),2)
-					nCuCalc     := Round(nPrecoNovo * ((100 - Z84->Z84_PRCCUS) / 100),2)
-					lRecalcRC   := .F.
-
-					If Z84->Z84_REPROD <> nRepCalc .or. Z84->Z84_CUPROD <> nCuCalc
-						lRecalcRC := .T.
+					If cOferta == "1"
+						cAtuprcNv := "N"
+						cOfertaNv := "S"
+					Else
+						cAtuprcNv := Z84->Z84_ATUPRC
+						cOfertaNv := Z84->Z84_OFERTA
 					EndIf
 
-					If lPrecoMudou .or. lRecalcRC
+					If cAtuprcNv == "S"
+						nRepCalc := Round(nPrecoNovo * ((100 - Z84->Z84_RENTAB) / 100),2)
+						nCuCalc  := Round(nPrecoNovo * ((100 - Z84->Z84_PRCCUS) / 100),2)
+					Else
+						nRepCalc := nPrecoNovo
+						nCuCalc  := nPrecoNovo
+					EndIf
+
+					lPrecoMudou := Z84->Z84_PRECO  <> nPrecoNovo
+					lRecalcRC   := Z84->Z84_REPROD <> nRepCalc .or. Z84->Z84_CUPROD <> nCuCalc
+					lAtuprcMud  := Z84->Z84_ATUPRC <> cAtuprcNv
+					lOfertaMud  := Z84->Z84_OFERTA <> cOfertaNv
+
+					If lPrecoMudou .or. lRecalcRC .or. lAtuprcMud .or. lOfertaMud
 						RecLock("Z84",.F.)
 						If lPrecoMudou
 							Z84->Z84_PRECO := nPrecoNovo
@@ -454,12 +477,21 @@ Static Function xImpPRC(oPanel)
 							Z84->Z84_REPROD := nRepCalc
 							Z84->Z84_CUPROD := nCuCalc
 						EndIf
+						If lAtuprcMud
+							Z84->Z84_ATUPRC := cAtuprcNv
+						EndIf
+						If lOfertaMud
+							Z84->Z84_OFERTA := cOfertaNv
+						EndIf
 						Z84->(MsUnlock())
 						nAlt++
 
 						cLogDet := ""
 						If lRecalcRC
-							cLogDet := " / RENT-CUSTO RECALCULADOS"
+							cLogDet += " / RENT-CUSTO RECALCULADOS"
+						EndIf
+						If lAtuprcMud .or. lOfertaMud
+							cLogDet += " / MARCADO COMO OFERTA (ATUPRC=N, OFERTA=S)"
 						EndIf
 
 						xAddLog("PRODUTO " + cProd + " (" + cDescArq + ") FAIXA " + AllTrim(cValToChar(Z84->Z84_FAIXA)) + " - PRECO " + AllTrim(Str(nPrecoNovo,14,2)) + cLogDet)
