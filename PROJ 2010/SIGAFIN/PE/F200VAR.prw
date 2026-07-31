@@ -27,7 +27,7 @@ Manipular as informações (variáveis) no retorno do Cnab a Receber (FINA200).
 
 //-------------------------------------------------------------------
 /*/{Protheus.doc} F200VAR
-description ALTERAR BANCO AGENCIA E CONTA NO PROCESSAMENTO DA CAIXA
+description ALTERAR BANCO AGENCIA E CONTA NO PROCESSAMENTO DA CAIXA / TRATAR VALOR DE ABATIMENTO INFORMADO PELO BANCO NO LUGAR DO DESCONTO
 @author  Edison G. Barbieri
 @since   17/09/25
 @version 12.1.2310
@@ -46,6 +46,24 @@ User Function F200VAR()
 	cChave := SE1->(cNumTitulo)
 
 	IF SE1->(DBSEEK(cChave))
+		// Banco Safra (portador 422): em algumas liquidacoes o banco informa
+		// o valor concedido no campo Abatimento em vez de Desconto, mesmo a
+		// remessa tendo sido enviada sempre com desconto. Sem este ajuste o
+		// valor fica capturado na variavel de abatimento mas nao entra na
+		// conta que fecha o titulo, deixando saldo em aberto igual ao valor
+		// do abatimento. Restrito ao portador 422 para nao alterar o
+		// comportamento de outros bancos/carteiras. IMPORTANTE: mexe em
+		// nDescont (variavel solta), NAO em nValRec - nValRec tem que
+		// continuar refletindo o valor liquido que o banco realmente
+		// creditou (senao a baixa registra o valor cheio como "recebido"
+		// e some com a discriminacao do desconto na conciliacao).
+		If SE1->E1_PORTADO == "422" .And. cOcorrbc == "06" .And. Paramixb[1][6] == 0 .And. Paramixb[1][7] > 0
+			nDescont := nDescont + nAbatim
+			nAbatim := 0
+			Paramixb[1][6] := Paramixb[1][6] + Paramixb[1][7]
+			Paramixb[1][7] := 0
+		EndIf
+
 		If SE1->E1_PORTADO == "104" .and. SE1->E1_AGEDEP == "4317 " .and. SE1->E1_CONTA == "0000096             " .and. cOcorrbc == "21"
 			//Ajusta a conta a baixar o titulo
 			RecLock("SE1", .F.)
