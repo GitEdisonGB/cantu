@@ -1,189 +1,89 @@
-#ifdef SPANISH
-	#define STR0001 "Este programa tiene el objetivo de imprimir informe "
-	#define STR0002 "segun los parametros informados por el usuario."
-	#define STR0003 "Mapa de Ventas"
-	#define STR0004 "A Rayas"
-	#define STR0005 "Administracion"
-	#define STR0006 "Espere"
-	#define STR0007 "Seleccionando registros para impresion..."
-	#define STR0008 "Seleccione correctamente las formas de pago para que se impriman en el informe."
-	#define STR0009 "íAtencion!"
-	#define STR0010 "CAJA"
-	#define STR0011 "Fecha     "
-	#define STR0012 "Factura"
-	#define STR0013 "Ser."
-	#define STR0014 "Vend.  "
-	#define STR0015 "Nombre Vend       "
-	#define STR0016 "Clien. "
-	#define STR0017 "Nombre Cliente        "
-	#define STR0018 "Desc."
-	#define STR0019 "Acr."
-	#define STR0020 "Credito"
-	#define STR0021 "Total"
-	#define STR0022 "Dinero"
-	#define STR0023 "Cheque"
-	#define STR0024 "Tarjeta"
-	#define STR0025 "Convenio"
-	#define STR0026 "Vales"
-	#define STR0027 "Financiado"
-	#define STR0028 "Otros"
-	#define STR0029 "Debito"
-	#define STR0030 "*** ANULADO POR EL OPERADOR ***"
-	#define STR0031 "Imprimiendo, espere..."
-	#define STR0032 "*************** DEVOLUCIONES**************"
-	#define STR0033 "S U B T O T A L ---- > Caja: "
-	#define STR0034 "S U B T O T A L ---- > Fecha "
-	#define STR0035 "S U B T O T A L ---- > Sucursal: "
-	#define STR0036 "T O T A L    G E N E R A L ---- > "
-	#define STR0037 "Imp. Discr."
-	#define STR0038 "Retenciones"
-	#define STR0039 "V U E L T O         ---- > Caja: "
-	#define STR0040 "V U E L T O         ---- > Fcha: "
-	#define STR0041 "V U E L T O         ---- > Sucurs: "
-	#define STR0042 "Retiro:  "
-	#define STR0043 "Entrada de vuelto "
-	#define STR0044 "Fueron elegidas "
-	#define STR0045 " formas de pago ("
-	#define STR0046 "). Debido al tamano del informe seran permitidas hasta 5 formas. Ajuste los parametros del informe."
-	#define STR0047 "Sucursal"
-	#define STR0048 "Cotizacion"
-	#define STR0049 "Fch "
-	#define STR0050 "Operador"
-	#define STR0051 "Dia vs.Caja"
-	#define STR0052 "Considera los impuestos variables en la "
-	#define STR0053 "suma total de los items, por estandar es 'SI'."
-	#define STR0054 "¿Considera Impuestos ?"
-	#define STR0055 "Si"
-	#define STR0056 "No"
-	#define STR0057 " REVERSION "
-	#define STR0058 "Det.Reversion:"
-	#define STR0059 "Form.Rev:"
-	#define STR0060 "Reversión:"
-	#define STR0061 "Preparando registros"
-#else
-	#ifdef ENGLISH
-		#define STR0001 "The aim of this program is to print reports "
-		#define STR0002 "according to the parameters informed by user."
-		#define STR0003 "Sales Map"
-		#define STR0004 "Z-Form"
-		#define STR0005 "Administration"
-		#define STR0006 "Please, Wait"
-		#define STR0007 "Selecting files to be printed..."
-		#define STR0008 "Select the payment mode to be printed correctly on the report."
-		#define STR0009 "Attention"
-		#define STR0010 "CASH.REG. "
-		#define STR0011 "Date     "
-		#define STR0012 "Invoic."
-		#define STR0013 "Series"
-		#define STR0014 "Sales Rep.  "
-		#define STR0015 "Sales Rep´s Name      "
-		#define STR0016 "Custom. "
-		#define STR0017 "Custom.´s Name        "
-		#define STR0018 "Disc."
-		#define STR0019 "Add."
-		#define STR0020 "Credit"
-		#define STR0021 "Total"
-		#define STR0022 "Cash"
-		#define STR0023 "Check"
-		#define STR0024 "Credit Card"
-		#define STR0025 "Agreement"
-		#define STR0026 "Meal Ticket"
-		#define STR0027 "Financed"
-		#define STR0028 "Others"
-		#define STR0029 "Debit"
-		#define STR0030 "*** CANCELLED BY OPERATOR   ***"
-		#define STR0031 "Printing, please wait..."
-		#define STR0032 "*************** RETURNS    ***************"
-		#define STR0033 "S U B T O T A L     ---- > C.Reg: "
-		#define STR0034 "S U B T O T A L     ---- > Date: "
-		#define STR0035 "S U B T O T A L     ---- > Branch: "
-		#define STR0036 "G R A N D     T O T A L ---- > "
-		#define STR0037 "Tax Desc."
-		#define STR0038 "Withhold."
-		#define STR0039 "C H A N G E         ---- > C.Reg: "
-		#define STR0040 "C H A N G E         ---- > Date: "
-		#define STR0041 "C H A N G E         ---- > Branch: "
-		#define STR0042 "C. Exhau:"
-		#define STR0043 "Exchange inflow : "
-		#define STR0044 "Payment modes    "
-		#define STR0045 " were chosen         ("
-		#define STR0046 "). Due to the report size only 5 forms are allowed. Adjust the report parameters.             "
-		#define STR0047 "Branch"
-		#define STR0048 "Quotation"
-		#define STR0049 "Date"
-		#define STR0050 "Operator"
-		#define STR0051 "DayVs.Teller"
-		#define STR0052 "Considers variable taxes in  "
-		#define STR0053 "sum of items, by default is 'YES'."
-		#define STR0054 "Consider Taxes?"
-		#define STR0055 "Yes"
-		#define STR0056 "No"
-		#define STR0057 " REVERSAL "
-		#define STR0058 "Reversal Date"
-		#define STR0059 "Form.Est:"
-		#define STR0060 "Reversal:"
-		#define STR0061 "Preparing Registers"
-	#else
-		#define STR0001 If( cPaisLoc $ "ANG|PTG", "Este programa tem como objetivo imprimir relatório ", "Este programa tem como objetivo imprimir relatorio " )
-		#define STR0002 If( cPaisLoc $ "ANG|PTG", "De acordo com os parâmetro s informados pelo utilizador.", "de acordo com os parametros informados pelo usuario." )
-		#define STR0003 If( cPaisLoc $ "ANG|PTG", "Mapa De Vendas", "Mapa de Vendas" )
-		#define STR0004 If( cPaisLoc $ "ANG|PTG", "Código de barras", "Zebrado" )
-		#define STR0005 If( cPaisLoc $ "ANG|PTG", "Administração", "Administracao" )
-		#define STR0006 "Aguarde"
-		#define STR0007 If( cPaisLoc $ "ANG|PTG", "A seleccionar os registos para impressão...", "Selecionando registros para impressão..." )
-		#define STR0008 If( cPaisLoc $ "ANG|PTG", "Seleccione correctamente as formas de pagamento para serem impressas no relatório.", "Selecione corretamente as formas de pagamento para serem impressas no relatório." )
-		#define STR0009 "Atenção"
-		#define STR0010 If( cPaisLoc $ "ANG|PTG", "Cx. ", "CX. " )
-		#define STR0011 "Data     "
-		#define STR0012 If( cPaisLoc $ "ANG|PTG", "N.fisc.", "N.Fisc." )
-		#define STR0013 If( cPaisLoc $ "ANG|PTG", "Sér.", "Ser." )
-		#define STR0014 "Vend.  "
-		#define STR0015 If( cPaisLoc $ "ANG|PTG", "Nome vend       ", "Nome Vend       " )
-		#define STR0016 "Clien. "
-		#define STR0017 If( cPaisLoc $ "ANG|PTG", "Nome cliente        ", "Nome Cliente        " )
-		#define STR0018 "Desc."
-		#define STR0019 "Acr."
-		#define STR0020 If( cPaisLoc $ "ANG|PTG", "Crédito", "Credito" )
-		#define STR0021 "Total"
-		#define STR0022 "Dinheiro"
-		#define STR0023 "Cheque"
-		#define STR0024 If( cPaisLoc $ "ANG|PTG", "Cartão", "Cartao" )
-		#define STR0025 If( cPaisLoc $ "ANG|PTG", "Convénio", "Convenio" )
-		#define STR0026 "Vales"
-		#define STR0027 "Financiado"
-		#define STR0028 "Outros"
-		#define STR0029 If( cPaisLoc $ "ANG|PTG", "Débito", "Debito" )
-		#define STR0030 If( cPaisLoc $ "ANG|PTG", "*** cancelado pelo operador ***", "*** CANCELADO PELO OPERADOR ***" )
-		#define STR0031 If( cPaisLoc $ "ANG|PTG", "A imprimir, aguarde...", "Imprimindo, aguarde..." )
-		#define STR0032 If( cPaisLoc $ "ANG|PTG", "*************** devoluções ***************", "*************** DEVOLUCOES ***************" )
-		#define STR0033 If( cPaisLoc $ "ANG|PTG", "S u b  -  t o t a l ---- > caixa: ", "S U B  -  T O T A L ---- > Caixa: " )
-		#define STR0034 If( cPaisLoc $ "ANG|PTG", "S u b  -  t o t a l ---- > data: ", "S U B  -  T O T A L ---- > Data: " )
-		#define STR0035 If( cPaisLoc $ "ANG|PTG", "S u b  -  t o t a l ---- > filial: ", "S U B  -  T O T A L ---- > Filial: " )
-		#define STR0036 If( cPaisLoc $ "ANG|PTG", "T o t a l     g e r a l ---- > ", "T O T A L     G E R A L ---- > " )
-		#define STR0037 If( cPaisLoc $ "ANG|PTG", "Imps.discr.", "Imps.Discr." )
-		#define STR0038 If( cPaisLoc $ "ANG|PTG", "Retenções", "Retencöes" )
-		#define STR0039 If( cPaisLoc $ "ANG|PTG", "Troco           ---- > caixa: ", "T R O C O           ---- > Caixa: " )
-		#define STR0040 If( cPaisLoc $ "ANG|PTG", "Troco           ---- > data: ", "T R O C O           ---- > Data: " )
-		#define STR0041 If( cPaisLoc $ "ANG|PTG", "Troco           ---- > filial: ", "T R O C O           ---- > Filial: " )
-		#define STR0042 "Sangria: "
-		#define STR0043 If( cPaisLoc $ "ANG|PTG", "Entrada de troco: ", "Entrada de Troco: " )
-		#define STR0044 "Foram escolhidas "
-		#define STR0045 " formas de pagamento ("
-		#define STR0046 "). Devido ao tamanho do relatório é permitida até 5 formas. Ajuste os parâmetros do relatório."
-		#define STR0047 "Filial"
-		#define STR0048 "Orçamento"
-		#define STR0049 "Data"
-		#define STR0050 "Operador"
-		#define STR0051 If( cPaisLoc $ "ANG|PTG", "Dia X Caixa", "Dia x Caixa" )
-		#define STR0052 "Considera os impostos variáveis na "
-		#define STR0053 "soma total dos itens, por padrão é 'SIM'."
-		#define STR0054 "Considera Impostos ?"
-		#define STR0055 "Sim"
-		#define STR0056 If( cPaisLoc $ "ANG|PTG", "Não", "Nao" )
-		#define STR0057 " ESTORNO "
-		#define STR0058 "Det.Estorno:"
-		#define STR0059 "Form.Est:"
-		#define STR0060 "Estorno:"
-		#define STR0061 If( cPaisLoc $ "ANG|PTG", "A preparar registos", "Preparando Registros" )
-	#endif
-#endif
+#DEFINE STR0001 FWI18NLang("LOJR075","STR0001",1)
+#DEFINE STR0002 FWI18NLang("LOJR075","STR0002",2)
+#DEFINE STR0003 FWI18NLang("LOJR075","STR0003",3)
+#DEFINE STR0004 FWI18NLang("LOJR075","STR0004",4)
+#DEFINE STR0005 FWI18NLang("LOJR075","STR0005",5)
+#DEFINE STR0006 FWI18NLang("LOJR075","STR0006",6)
+#DEFINE STR0007 FWI18NLang("LOJR075","STR0007",7)
+#DEFINE STR0008 FWI18NLang("LOJR075","STR0008",8)
+#DEFINE STR0009 FWI18NLang("LOJR075","STR0009",9)
+#DEFINE STR0010 FWI18NLang("LOJR075","STR0010",10)
+#DEFINE STR0011 FWI18NLang("LOJR075","STR0011",11)
+#DEFINE STR0012 FWI18NLang("LOJR075","STR0012",12)
+#DEFINE STR0013 FWI18NLang("LOJR075","STR0013",13)
+#DEFINE STR0014 FWI18NLang("LOJR075","STR0014",14)
+#DEFINE STR0015 FWI18NLang("LOJR075","STR0015",15)
+#DEFINE STR0016 FWI18NLang("LOJR075","STR0016",16)
+#DEFINE STR0017 FWI18NLang("LOJR075","STR0017",17)
+#DEFINE STR0018 FWI18NLang("LOJR075","STR0018",18)
+#DEFINE STR0019 FWI18NLang("LOJR075","STR0019",19)
+#DEFINE STR0020 FWI18NLang("LOJR075","STR0020",20)
+#DEFINE STR0021 FWI18NLang("LOJR075","STR0021",21)
+#DEFINE STR0022 FWI18NLang("LOJR075","STR0022",22)
+#DEFINE STR0023 FWI18NLang("LOJR075","STR0023",23)
+#DEFINE STR0024 FWI18NLang("LOJR075","STR0024",24)
+#DEFINE STR0025 FWI18NLang("LOJR075","STR0025",25)
+#DEFINE STR0026 FWI18NLang("LOJR075","STR0026",26)
+#DEFINE STR0027 FWI18NLang("LOJR075","STR0027",27)
+#DEFINE STR0028 FWI18NLang("LOJR075","STR0028",28)
+#DEFINE STR0029 FWI18NLang("LOJR075","STR0029",29)
+#DEFINE STR0030 FWI18NLang("LOJR075","STR0030",30)
+#DEFINE STR0031 FWI18NLang("LOJR075","STR0031",31)
+#DEFINE STR0032 FWI18NLang("LOJR075","STR0032",32)
+#DEFINE STR0033 FWI18NLang("LOJR075","STR0033",33)
+#DEFINE STR0034 FWI18NLang("LOJR075","STR0034",34)
+#DEFINE STR0035 FWI18NLang("LOJR075","STR0035",35)
+#DEFINE STR0036 FWI18NLang("LOJR075","STR0036",36)
+#DEFINE STR0037 FWI18NLang("LOJR075","STR0037",37)
+#DEFINE STR0038 FWI18NLang("LOJR075","STR0038",38)
+#DEFINE STR0039 FWI18NLang("LOJR075","STR0039",39)
+#DEFINE STR0040 FWI18NLang("LOJR075","STR0040",40)
+#DEFINE STR0041 FWI18NLang("LOJR075","STR0041",41)
+#DEFINE STR0042 FWI18NLang("LOJR075","STR0042",42)
+#DEFINE STR0043 FWI18NLang("LOJR075","STR0043",43)
+#DEFINE STR0044 FWI18NLang("LOJR075","STR0044",44)
+#DEFINE STR0045 FWI18NLang("LOJR075","STR0045",45)
+#DEFINE STR0046 FWI18NLang("LOJR075","STR0046",46)
+#DEFINE STR0047 FWI18NLang("LOJR075","STR0047",47)
+#DEFINE STR0048 FWI18NLang("LOJR075","STR0048",48)
+#DEFINE STR0049 FWI18NLang("LOJR075","STR0049",49)
+#DEFINE STR0050 FWI18NLang("LOJR075","STR0050",50)
+#DEFINE STR0051 FWI18NLang("LOJR075","STR0051",51)
+#DEFINE STR0052 FWI18NLang("LOJR075","STR0052",52)
+#DEFINE STR0053 FWI18NLang("LOJR075","STR0053",53)
+#DEFINE STR0054 FWI18NLang("LOJR075","STR0054",54)
+#DEFINE STR0055 FWI18NLang("LOJR075","STR0055",55)
+#DEFINE STR0056 FWI18NLang("LOJR075","STR0056",56)
+#DEFINE STR0057 FWI18NLang("LOJR075","STR0057",57)
+#DEFINE STR0058 FWI18NLang("LOJR075","STR0058",58)
+#DEFINE STR0059 FWI18NLang("LOJR075","STR0059",59)
+#DEFINE STR0060 FWI18NLang("LOJR075","STR0060",60)
+#DEFINE STR0061 FWI18NLang("LOJR075","STR0061",61)
+#DEFINE STR0062 FWI18NLang("LOJR075","STR0062",62)
+#DEFINE STR0063 FWI18NLang("LOJR075","STR0063",63)
+#DEFINE STR0064 FWI18NLang("LOJR075","STR0064",64)
+#DEFINE STR0065 FWI18NLang("LOJR075","STR0065",65)
+#DEFINE STR0066 FWI18NLang("LOJR075","STR0066",66)
+#DEFINE STR0067 FWI18NLang("LOJR075","STR0067",67)
+#DEFINE STR0068 FWI18NLang("LOJR075","STR0068",68)
+#DEFINE STR0069 FWI18NLang("LOJR075","STR0069",69)
+#DEFINE STR0070 FWI18NLang("LOJR075","STR0070",70)
+#DEFINE STR0071 FWI18NLang("LOJR075","STR0071",71)
+#DEFINE STR0072 FWI18NLang("LOJR075","STR0072",72)
+#DEFINE STR0073 FWI18NLang("LOJR075","STR0073",73)
+#DEFINE STR0074 FWI18NLang("LOJR075","STR0074",74)
+#DEFINE STR0075 FWI18NLang("LOJR075","STR0075",75)
+#DEFINE STR0076 FWI18NLang("LOJR075","STR0076",76)
+#DEFINE STR0077 FWI18NLang("LOJR075","STR0077",77)
+#DEFINE STR0078 FWI18NLang("LOJR075","STR0078",78)
+#DEFINE STR0079 FWI18NLang("LOJR075","STR0079",79)
+#DEFINE STR0080 FWI18NLang("LOJR075","STR0080",80)
+#DEFINE STR0081 FWI18NLang("LOJR075","STR0081",81)
+#DEFINE STR0082 FWI18NLang("LOJR075","STR0082",82)
+#DEFINE STR0083 FWI18NLang("LOJR075","STR0083",83)
+#DEFINE STR0084 FWI18NLang("LOJR075","STR0084",84)
+#DEFINE STR0085 FWI18NLang("LOJR075","STR0085",85)
+#DEFINE STR0086 FWI18NLang("LOJR075","STR0086",86)
+#DEFINE STR0087 FWI18NLang("LOJR075","STR0087",87)
+#DEFINE STR0088 FWI18NLang("LOJR075","STR0088",88)
+#DEFINE STR0089 FWI18NLang("LOJR075","STR0089",89)
