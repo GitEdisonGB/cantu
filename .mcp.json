@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "cantu-oracle-readonly": {
+      "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\mcp-cantu-oracle-readonly\\server.py"
+      ]
+    }
+  }
+}
