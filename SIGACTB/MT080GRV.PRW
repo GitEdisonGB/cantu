@@ -18,16 +18,23 @@
 */
 
 user Function MT080GRV()
-	Local lExecuta := .T.    
+	Local lExecuta  := .T.
+	Local cAmbiente := GetEnvServer() //Alterado para identificar ambiente (Producao/Homologacao) no aviso - Edison Barbieri - Dt.05/08/2026
 	
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 //³Chama função para monitor uso de fontes customizados³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 U_USORWMAKE(ProcName(),FunName())
 
-	cProcID    := iif(altera, "Alteração de TES ", "Inclusão de nova TES ")
-	cAssunto   := iif(altera, "Aviso: TES alterada ", "Aviso: nova TES ")
-	cInclualte := iif(altera, "ALTERACAO DE TES ", "INCLUSAO NOVA TES")
+	If altera
+		cProcID    := "Alteração de TES "
+		cAssunto   := "[" + Upper(cAmbiente) + "] Aviso: TES alterada "
+		cInclualte := "ALTERACAO DE TES "
+	Else
+		cProcID    := "Inclusão de nova TES "
+		cAssunto   := "[" + Upper(cAmbiente) + "] Aviso: nova TES "
+		cInclualte := "INCLUSAO NOVA TES"
+	EndIf
 	cProcess   := OemToAnsi("000001") // Numero do Processo
 	cStatus    := OemToAnsi("001000")
 	
