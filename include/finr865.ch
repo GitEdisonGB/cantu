@@ -1,126 +1,47 @@
-#ifdef SPANISH
-	#define STR0001 "Imprime lista de titulos por pagar que tuvieron Retencion de Impuestos"
-	#define STR0002 "A rayas"
-	#define STR0003 "Administrac."
-	#define STR0004 "Por Codigo Proveedor"
-	#define STR0005 "Por Nombre Proveed."
-	#define STR0006 "¡Los campos necesarios para impresion de informe no existen!"
-	#define STR0007 "Lista de Tit. por Pagar con retencion de Impuestos"
-	#define STR0008 "Codigo         Nombre Proveedor               CGC"
-	#define STR0009 "     Prf Numero      PC  Tipo Fch Emision Fch Vencto  Valor Original      Valor SEST      Valor IRFF       Valor ISS      Valor INSS       Valor PIS    Valor COFINS      Valor CSLL   Valor Neto"
-	#define STR0010 "     Prf Numero      PC  Tipo Fch Emision Fch Vencto  Valor Original                      Valor IRFF       Valor ISS      Valor INSS       Valor PIS    Valor COFINS      Valor CSLL   Valor Neto"
-	#define STR0011 "Seleccionando Registros.."
-	#define STR0012 "ANULADO POR EL OPERADOR"
-	#define STR0013 "Total Proveedor  - "
-	#define STR0014 "Titulos"
-	#define STR0015 "Titulo"
-	#define STR0016 "Total Gral.      ----> "
-	#define STR0017 "A = Los valores de PIS,COFINS y CSLL de este titulo se retuv. en otro titulo."	
-	#define STR0018 "B = Los valores de PIS, COFINS y CSLL de este titulo se refieren a una prev., aun no se retuvieron."	
-	#define STR0019 "C = Los regist. referen. a la fact. no se incluyen en los totalizadores."
-	#define STR0020 "Codigo"
-	#define STR0021 "Tda."
-	#define STR0022 "Proveedor"
-	#define STR0023 "CGC"
-	#define STR0024 "Prf"
-	#define STR0025 "Numero"
-	#define STR0026 "PC"
-	#define STR0027 "Tipo"
-	#define STR0028 "Emision"
-	#define STR0029 "Vencto"
-	#define STR0030 "Valor "
-	#define STR0031 "Original"
-	#define STR0032 "SEST"
-	#define STR0033 "IRRF"
-	#define STR0034 "ISS"
-	#define STR0035 "INSS"
-	#define STR0036 "PIS"
-	#define STR0037 "COFINS"
-	#define STR0038 "CSLL"
-	#define STR0039 "Neto"
-	#define STR0040 "Valores Tot."
-#else
-	#ifdef ENGLISH
-		#define STR0001 "Print the payable bills list which go under Tax Withholding            "
-		#define STR0002 "Z.Form "
-		#define STR0003 "Management   "
-		#define STR0004 "Per Supplier Code    "
-		#define STR0005 "Per Supplier Name  "
-		#define STR0006 "The necessary fields for the report printing do not exist!    "
-		#define STR0007 "Payable Bills list showing withholding Taxes       "
-		#define STR0008 "Code           Supplier Name                  CGC"
-		#define STR0009 "     Prf Number      Pt  Type  Issue Date    Original Value          SEST Value          IRFF Value           ISS Value          INSS Value           PIS Value        COFINS Value          CSLL Value       Net Value    "
-		#define STR0010 "     Prf Number      Pt  Type  Issue Date    Original Value                              IRRF Value           ISS Value          INSS Value           PIS Value        COFINS Value          CSLL Value       Net Value    "
-		#define STR0011 "Selecting Records........"
-		#define STR0012 "CANCELLED BY OPERATOR  "
-		#define STR0013 "Supplier Total    - "
-		#define STR0014 "Bills  "
-		#define STR0015 "Bill  "
-		#define STR0016 "Grand total      ----> "
-		#define STR0017 "A=Amounts of PIS, COFINS and CSLL of this bill were withheld in other bill."
-		#define STR0018 "B=Amounts of PIS, COFINS and CSLL of this bill refer to an estimate and have not yet been withheld."	
-		#define STR0019 "C = Records relating to the invoice are not included in the totallers. "
-		#define STR0020 "Code  "
-		#define STR0021 "Stor"
-		#define STR0022 "Supplier  "
-		#define STR0023 "CGC"
-		#define STR0024 "Prf"
-		#define STR0025 "Number"
-		#define STR0026 "Pc"
-		#define STR0027 "Type"
-		#define STR0028 "IssueDt"
-		#define STR0029 "Due Dt"
-		#define STR0030 "Amnt. "
-		#define STR0031 "Original"
-		#define STR0032 "SEST"
-		#define STR0033 "IRRF"
-		#define STR0034 "ISS"
-		#define STR0035 "INSS"
-		#define STR0036 "PIS"
-		#define STR0037 "COFINS"
-		#define STR0038 "CSLL"
-		#define STR0039 "Net    "
-		#define STR0040 "Total amounts "
-	#else
-		#define STR0001 "Imprime a relacao dos titulos a pagar que sofreram Retencao de Impostos"
-		#define STR0002 "Zebrado"
-		#define STR0003 "Administracao"
-		#define STR0004 "Por Codigo Fornecedor"
-		#define STR0005 "Por Nome Fornecedor"
-		#define STR0006 "Os campos necessarios para impresao do relatorio nao existem !"
-		#define STR0007 "Relacao de Titulos a Pagar com retencao de Impostos"
-		#define STR0008 "Codigo         Nome do Fornecedor             CGC"
-		#define STR0009 "     Prf Numero      Pc  Tipo  Dt Emissao Dt.Vencto   Valor Original      Valor SEST      Valor IRFF       Valor ISS      Valor INSS       Valor PIS    Valor COFINS      Valor CSLL   Valor Liquido"
-		#define STR0010 "     Prf Numero      Pc  Tipo  Dt Emissao Dt.Vencto   Valor Original                      Valor IRFF       Valor ISS      Valor INSS       Valor PIS    Valor COFINS      Valor CSLL   Valor Liquido"
-		#define STR0011 "Selecionando Registros..."
-		#define STR0012 "CANCELADO PELO OPERADOR"
-		#define STR0013 "Total Fornecedor  - "
-		#define STR0014 "Titulos"
-		#define STR0015 "Titulo"
-		#define STR0016 "Total Geral      ----> "
-		#define STR0017 "A = Os valores de Pis,Cofins e Csll deste titulo foram retidos em outro titulo."	
-		#define STR0018 "B = Os valores de Pis,Cofins e Csll deste titulo se referem a uma previsao, ainda nao foram retidos."	
-		#define STR0019 "C = Os registros referentes a fatura não são incluidos nos totalizadores."
-		#define STR0020 "Codigo"
-		#define STR0021 "Loja"
-		#define STR0022 "Fornecedor"
-		#define STR0023 "CGC"
-		#define STR0024 "Prf"
-		#define STR0025 "Numero"
-		#define STR0026 "Pc"
-		#define STR0027 "Tipo"
-		#define STR0028 "Emissao"
-		#define STR0029 "Vencto"
-		#define STR0030 "Valor "
-		#define STR0031 "Original"
-		#define STR0032 "SEST"
-		#define STR0033 "IRRF"
-		#define STR0034 "ISS"
-		#define STR0035 "INSS"
-		#define STR0036 "PIS"
-		#define STR0037 "COFINS"
-		#define STR0038 "CSLL"
-		#define STR0039 "Liquido"
-		#define STR0040 "Valores Totais"
-	#endif
-#endif
+#DEFINE STR0001 FWI18NLang("FINR865","STR0001",1)
+#DEFINE STR0002 FWI18NLang("FINR865","STR0002",2)
+#DEFINE STR0003 FWI18NLang("FINR865","STR0003",3)
+#DEFINE STR0004 FWI18NLang("FINR865","STR0004",4)
+#DEFINE STR0005 FWI18NLang("FINR865","STR0005",5)
+#DEFINE STR0006 FWI18NLang("FINR865","STR0006",6)
+#DEFINE STR0007 FWI18NLang("FINR865","STR0007",7)
+#DEFINE STR0008 FWI18NLang("FINR865","STR0008",8)
+#DEFINE STR0009 FWI18NLang("FINR865","STR0009",9)
+#DEFINE STR0010 FWI18NLang("FINR865","STR0010",10)
+#DEFINE STR0011 FWI18NLang("FINR865","STR0011",11)
+#DEFINE STR0012 FWI18NLang("FINR865","STR0012",12)
+#DEFINE STR0013 FWI18NLang("FINR865","STR0013",13)
+#DEFINE STR0014 FWI18NLang("FINR865","STR0014",14)
+#DEFINE STR0015 FWI18NLang("FINR865","STR0015",15)
+#DEFINE STR0016 FWI18NLang("FINR865","STR0016",16)
+#DEFINE STR0017 FWI18NLang("FINR865","STR0017",17)
+#DEFINE STR0018 FWI18NLang("FINR865","STR0018",18)
+#DEFINE STR0019 FWI18NLang("FINR865","STR0019",19)
+#DEFINE STR0020 FWI18NLang("FINR865","STR0020",20)
+#DEFINE STR0021 FWI18NLang("FINR865","STR0021",21)
+#DEFINE STR0022 FWI18NLang("FINR865","STR0022",22)
+#DEFINE STR0023 FWI18NLang("FINR865","STR0023",23)
+#DEFINE STR0024 FWI18NLang("FINR865","STR0024",24)
+#DEFINE STR0025 FWI18NLang("FINR865","STR0025",25)
+#DEFINE STR0026 FWI18NLang("FINR865","STR0026",26)
+#DEFINE STR0027 FWI18NLang("FINR865","STR0027",27)
+#DEFINE STR0028 FWI18NLang("FINR865","STR0028",28)
+#DEFINE STR0029 FWI18NLang("FINR865","STR0029",29)
+#DEFINE STR0030 FWI18NLang("FINR865","STR0030",30)
+#DEFINE STR0031 FWI18NLang("FINR865","STR0031",31)
+#DEFINE STR0032 FWI18NLang("FINR865","STR0032",32)
+#DEFINE STR0033 FWI18NLang("FINR865","STR0033",33)
+#DEFINE STR0034 FWI18NLang("FINR865","STR0034",34)
+#DEFINE STR0035 FWI18NLang("FINR865","STR0035",35)
+#DEFINE STR0036 FWI18NLang("FINR865","STR0036",36)
+#DEFINE STR0037 FWI18NLang("FINR865","STR0037",37)
+#DEFINE STR0038 FWI18NLang("FINR865","STR0038",38)
+#DEFINE STR0039 FWI18NLang("FINR865","STR0039",39)
+#DEFINE STR0040 FWI18NLang("FINR865","STR0040",40)
+#DEFINE STR0041 FWI18NLang("FINR865","STR0041",41)
+#DEFINE STR0042 FWI18NLang("FINR865","STR0042",42)
+#DEFINE STR0043 FWI18NLang("FINR865","STR0043",43)
+#DEFINE STR0044 FWI18NLang("FINR865","STR0044",44)
+#DEFINE STR0045 FWI18NLang("FINR865","STR0045",45)
+#DEFINE STR0046 FWI18NLang("FINR865","STR0046",46)
+#DEFINE STR0047 FWI18NLang("FINR865","STR0047",47)
