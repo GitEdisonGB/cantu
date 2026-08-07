@@ -1,4 +1,4 @@
-#Include "Protheus.ch"
+#Include "totvs.ch"
 
 //==================================================================
 // Projeto    : Integracao CT-e HiveCloud
@@ -32,7 +32,7 @@
 //               Deixar em branco para consultar todos os status
 //
 //   MV_HVDTINI  Data inicial de emissao no formato YYYY-MM-DD
-//               Default: D-1 (data corrente menos um dia) quando vazio
+//               Default: D-7 (data corrente menos 7 dias) quando vazio
 //
 //   MV_HVDTFIM  Data final de emissao no formato YYYY-MM-DD
 //               Default: data corrente quando vazio
@@ -269,7 +269,7 @@ User Function HiveCte(aParam)
 	Private cStCteHV   := ""
 	Default aParam     := {"05", "01"}
 
-	olErro     := ErrorBlock({|e| IIf(ValType(e:Description) == "C", ConOut("### HiveCte ERRO: " + e:Description), e:Description)})
+	olErro     := ErrorBlock({|e| HVErrBlock(e)})
 	cEmpHV     := aParam[1]
 	clFilial   := aParam[2]
 	cNomeSemaf := "HIVECTE" + cEmpHV
@@ -307,6 +307,29 @@ User Function HiveCte(aParam)
 
 Return
 
+
+//------------------------------------------------------------------
+// Funcao  : HVErrBlock (Static)
+// Descricao: Handler de erro instalado via ErrorBlock() durante a
+//            execucao do HiveCte. IIf() avalia os dois ramos antes de
+//            decidir (nao e lazy como um operador ternario) - um
+//            e:Description nao-Character faria o ConOut concatenar
+//            string com tipo incompativel mesmo no ramo nao usado,
+//            por isso o If/Else explicito aqui.
+// Parametros:
+//   oError (O) - objeto de erro recebido pelo ErrorBlock
+// Retorno: xRet (U) - repassa oError:Description quando nao-Character
+//------------------------------------------------------------------
+Static Function HVErrBlock(oError)
+	Local xRet := Nil
+
+	If ValType(oError:Description) == "C"
+		ConOut("### HiveCte ERRO: " + oError:Description)
+	Else
+		xRet := oError:Description
+	EndIf
+
+Return xRet
 
 //------------------------------------------------------------------
 // Funcao  : IntCTeHV (Static)
@@ -426,7 +449,11 @@ Static Function IntCTeHV()
 				cUFIni     := aContent[nI]["ufInicial"]
 				cUFFim     := aContent[nI]["ufFinal"]
 				cStatus    := AllTrim(cValToChar(aContent[nI]["statusCte"]))
-				cTipo      := IIf(cStatus == "CANCELADO", "CANCELAMENTO", "NORMAL")
+				If cStatus == "CANCELADO"
+					cTipo := "CANCELAMENTO"
+				Else
+					cTipo := "NORMAL"
+				EndIf
 
 				// CT-e NORMAL: processar somente os autorizados
 				If cTipo == "NORMAL" .AND. cStatus != "AUTORIZADO"
@@ -453,7 +480,11 @@ Static Function IntCTeHV()
 					EndIf
 
 					cChave := StrTran(AllTrim(jCte["chaveAcesso"]), "CTe", "")
-					LogHV("Processando chave: " + cChave + " [" + cTipo + "] Filial: " + IIf(Empty(cFilNF), "padrao", cFilNF))
+					If Empty(cFilNF)
+						LogHV("Processando chave: " + cChave + " [" + cTipo + "] Filial: padrao")
+					Else
+						LogHV("Processando chave: " + cChave + " [" + cTipo + "] Filial: " + cFilNF)
+					EndIf
 					LogHV("JSON CTE: " + jCte:ToJson())
 
 					// Muda para a filial do emitente antes de consultar SF2 e acionar MATA920
@@ -757,7 +788,7 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Local aSF2          := {}
 	Local aSD2          := {}
 	Local nField        := 0
-	Local nOpc          := IIf(oJClient == Nil, 5, 3)
+	Local nOpc          := 0
 	Local oTES          := Nil
 	Local jValores      := Nil
 	Local jIcms         := Nil
@@ -778,6 +809,7 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Local cTesUsar      := ""
 	Local cSegUsar      := ""
 	Local cTipoUsar     := "N"
+	Local lChkTrbGen    := .F.
 	Private lAutoErrNoFile := .T.
 	Private lMsErroAuto    := .F.
 	Private lComplemento   := .F.
@@ -785,6 +817,12 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Private nValICMSHV     := 0
 	Private nBaseICMSHV    := 0
 	Default cFilHV      := ""
+
+	If oJClient == Nil
+		nOpc := 5
+	Else
+		nOpc := 3
+	EndIf
 
 	If nOpc == 5
 		AEVal(oJSF2:GetNames(), {|x| AAdd(aSF2, {x, oJSF2[x], Nil})})
@@ -907,9 +945,15 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			// fiscal p/ F2_TIPO="I"), confirmado em teste real - nao informar.
 		EndIf
 
+		If FindFunction("ChkTrbGen")
+			lChkTrbGen := ChkTrbGen("SD2", "D2_IDTRIB")
+		Else
+			lChkTrbGen := .F.
+		EndIf
+
 		MaFisIni(oJClient["A1_COD"], oJClient["A1_LOJA"], "C", "N", oJClient["A1_TIPO"], ;
 			MaFisRelImp("MT100", {"SF2", "SD2"}), , .T., , , , , , , , , , , , , , , , , , , , , , , , , ;
-			IIf(FindFunction("ChkTrbGen"), ChkTrbGen("SD2", "D2_IDTRIB"), .F.))
+			lChkTrbGen)
 		MaFisAlt("NF_UFDEST", oTES["uf"])
 		MaFisAlt("NF_PNF_UF", oTES["uf"])
 	EndIf
@@ -1066,7 +1110,6 @@ Static Function HVGetCodMun(cCidade, cUF)
 	Local cAlias    := GetNextAlias()
 	Local cCidNorm  := HVNormMun(cCidade)
 	Local cCodMun   := ""
-	Local nAchados  := 0
 	Local cMunRaw   := ""
 	Local cMunNorm  := ""
 
@@ -1078,30 +1121,19 @@ Static Function HVGetCodMun(cCidade, cUF)
 		  AND CC2.%NotDel%
 	EndSQL
 
-	LogHV("HVGetCodMun DEBUG: busca='" + cCidNorm + "' (len=" + cValToChar(Len(cCidNorm)) + ") UF='" + AllTrim(cUF) + "'")
-
 	While !(cAlias)->(EOF())
-		nAchados++
 		cMunRaw  := AllTrim((cAlias)->CC2_MUN)
 		cMunNorm := HVNormMun(cMunRaw)
 
 		If cMunNorm == cCidNorm
 			cCodMun := AllTrim((cAlias)->CC2_CODMUN)
-			LogHV("HVGetCodMun DEBUG: MATCH cod=" + cCodMun + " CC2_MUN='" + cMunRaw + "' norm='" + cMunNorm + "'")
 			Exit
-		ElseIf "-" $ cMunNorm .Or. "-" $ cCidNorm .Or. Left(cMunNorm, 4) == Left(cCidNorm, 4)
-			// Loga candidatos com inicio parecido para ajudar a achar divergencia de grafia
-			LogHV("HVGetCodMun DEBUG: quase-match CC2_MUN='" + cMunRaw + "' (len=" + cValToChar(Len(cMunRaw)) + ") norm='" + cMunNorm + "' (len=" + cValToChar(Len(cMunNorm)) + ") <> busca='" + cCidNorm + "' (len=" + cValToChar(Len(cCidNorm)) + ")")
 		EndIf
 
 		(cAlias)->(DBSkip())
 	EndDo
 
 	(cAlias)->(DBCloseArea())
-
-	If Empty(cCodMun)
-		LogHV("HVGetCodMun DEBUG: nao localizado. Cidade='" + cCidNorm + "' UF='" + AllTrim(cUF) + "' (" + cValToChar(nAchados) + " municipios da UF avaliados)")
-	EndIf
 
 Return cCodMun
 
@@ -1235,7 +1267,11 @@ Static Function HVFilSM0(cCNPJ)
 	EndDo
 	SM0->(DBGoTo(nRecno))
 
-	LogHV("HVFilSM0: CNPJ=" + cCgc + " Filial=" + IIf(Empty(cFilNF), "(nao localizado)", cFilNF))
+	If Empty(cFilNF)
+		LogHV("HVFilSM0: CNPJ=" + cCgc + " Filial=(nao localizado)")
+	Else
+		LogHV("HVFilSM0: CNPJ=" + cCgc + " Filial=" + cFilNF)
+	EndIf
 
 Return cFilNF
 
@@ -1279,11 +1315,18 @@ Static Function SaveLogHV(cChave, cTipo, cError, cJson)
 	If lFound
 		(cXMLCTM)->(DBGoTo((cAlias)->RECNO))
 		nTry    := (cAlias)->NTRY
-		cStatus := IIf(!Empty(cError), "E", "I")
+		If !Empty(cError)
+			cStatus := "E"
+		Else
+			cStatus := "I"
+		EndIf
+
 		RecLock(cXMLCTM, .F.)
 		(cXMLCTM)->&(cIniXMLCTM + "LOG")    := cError
 		(cXMLCTM)->&(cIniXMLCTM + "STATUS") := cStatus
-		(cXMLCTM)->&(cIniXMLCTM + "TRY")    += IIf(!Empty(cError), 1, 0)
+		If !Empty(cError)
+			(cXMLCTM)->&(cIniXMLCTM + "TRY") += 1
+		EndIf
 		(cXMLCTM)->&(cIniXMLCTM + "DTINTE") := Date()
 		(cXMLCTM)->&(cIniXMLCTM + "XML")    := cJson
 		(cXMLCTM)->(MsUnlock())
@@ -1307,9 +1350,17 @@ Static Function SaveLogHV(cChave, cTipo, cError, cJson)
 		(cXMLCTM)->&(cIniXMLCTM + "CHAVE")  := cChave
 		(cXMLCTM)->&(cIniXMLCTM + "TIPO")   := PadR(cTipo, TamSX3(cIniXMLCTM + "TIPO")[1])
 		(cXMLCTM)->&(cIniXMLCTM + "TPDOC")  := "C"
-		(cXMLCTM)->&(cIniXMLCTM + "STATUS") := IIf(!Empty(cError), "E", "I")
+		If !Empty(cError)
+			(cXMLCTM)->&(cIniXMLCTM + "STATUS") := "E"
+		Else
+			(cXMLCTM)->&(cIniXMLCTM + "STATUS") := "I"
+		EndIf
 		(cXMLCTM)->&(cIniXMLCTM + "LOG")    := cError
-		(cXMLCTM)->&(cIniXMLCTM + "TRY")    := IIf(!Empty(cError), 1, 0)
+		If !Empty(cError)
+			(cXMLCTM)->&(cIniXMLCTM + "TRY") := 1
+		Else
+			(cXMLCTM)->&(cIniXMLCTM + "TRY") := 0
+		EndIf
 		(cXMLCTM)->&(cIniXMLCTM + "DTINTE") := Date()
 		(cXMLCTM)->&(cIniXMLCTM + "XML")    := cJson
 		(cXMLCTM)->(MsUnlock())
