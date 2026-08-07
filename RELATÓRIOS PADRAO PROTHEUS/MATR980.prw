@@ -29,7 +29,11 @@ Local cRelease as character
 
 Local cEndWeb		:= "https://tdn.totvs.com/display/PROT/Tabela+SFT+-+Livro+Fiscal+por+Item+de+NF"
 
-lVerpesssen := F980Sel(FindFunction("Verpesssen"),Verpesssen(),.T.)
+If FindFunction("Verpesssen")
+lVerpesssen := Verpesssen()
+Else
+lVerpesssen := .T.
+EndIf
 
 cRelease 	:=  GetRPORelease()     
 

@@ -991,19 +991,19 @@ While (cAliasQry)->(!Eof()) .And. !oReport:Cancel()
 				oSection12:Cell("N3_VRDACM"):SetBlock( { || &(cAliasQry + '->N3_VRDACM'+cSuf) } )
 				oSection12:Cell("N3_VRDACM"):SetPicture( AFPesqPict("SN3","N3_VRDACM"+cSuf,19,nSuf) )
 				
-				oSection12:Cell("N3_VRCMES1"):SetBlock( { || F070Sel( cSuf == "1", &(cAliasQry + '->N3_VRCMES'+cSuf), 0 ) } )
+				oSection12:Cell("N3_VRCMES1"):SetBlock( { || F070Unico1(cAliasQry, cSuf, "N3_VRCMES") } )
 				oSection12:Cell("N3_VRCMES1"):SetPicture( F070Sel( cSuf != "1", "@Z", "" ) + AFPesqPict("SN3","N3_VRCMES1",15,1) )
 				
-				oSection12:Cell("N3_VRCBAL1"):SetBlock( { || F070Sel( cSuf == "1", &(cAliasQry + '->N3_VRCBAL'+cSuf), 0 ) } )
+				oSection12:Cell("N3_VRCBAL1"):SetBlock( { || F070Unico1(cAliasQry, cSuf, "N3_VRCBAL") } )
 				oSection12:Cell("N3_VRCBAL1"):SetPicture( F070Sel( cSuf != "1", "@Z", "" ) + AFPesqPict("SN3","N3_VRCBAL1",17,1) )
 				
 				oSection12:Cell("N3_VRCACM1"):SetBlock( { || F070Sel( cSuf == "1", &(cAliasQry + '->N3_VRCACM'+cSuf), 0 ) } )
 				oSection12:Cell("N3_VRCACM1"):SetPicture( F070Sel( cSuf != "1", "@Z", "" ) + AFPesqPict("SN3","N3_VRCACM1",19,1) )
 				
-				oSection12:Cell("N3_VRCDM1"):SetBlock( { || F070Sel( cSuf == "1", &(cAliasQry + '->N3_VRCDM'+cSuf), 0 ) } )
+				oSection12:Cell("N3_VRCDM1"):SetBlock( { || F070Unico1(cAliasQry, cSuf, "N3_VRCDM") } )
 				oSection12:Cell("N3_VRCDM1"):SetPicture( F070Sel( cSuf != "1", "@Z", "" ) + AFPesqPict("SN3","N3_VRCDM1",15,1) )
 				
-				oSection12:Cell("N3_VRCDB1"):SetBlock( { || F070Sel( cSuf == "1", &(cAliasQry + '->N3_VRCDB'+cSuf), 0 ) } )
+				oSection12:Cell("N3_VRCDB1"):SetBlock( { || F070Unico1(cAliasQry, cSuf, "N3_VRCDB") } )
 				oSection12:Cell("N3_VRCDB1"):SetPicture( F070Sel( cSuf != "1", "@Z", "" ) + AFPesqPict("SN3","N3_VRCDB1",17,1) )
 				
 				oSection12:Cell("N3_VRCDA1"):SetBlock( { || F070Sel( cSuf == "1", &(cAliasQry + '->N3_VRCDA'+cSuf), 0 ) } )
@@ -1739,4 +1739,29 @@ Static Function F070Sel(lCond, xValA, xValB)
 	EndIf
 
 Return uRet
+
+//----------------------------------------------------------
+/*/{Protheus.doc}F070Unico1
+So retorna o valor via macro quando cSuf == "1" (campo so existe
+nessa variante, ex. N3_VRCMES1, sem N3_VRCMES2..5) -- extraida do
+seletor generico porque montar o nome do campo via macro pras
+outras moedas quebraria em runtime (campo nao existe).
+
+@author Ajuste Grupo Luiz Hohl
+@since  06/08/2026
+@param cAliasQryP Alias temporario da query
+@param cSufP Sufixo da moeda ("1" a "5")
+@param cCampoP Prefixo do campo (ex. "N3_VRCMES")
+@return xRet Variant
+/*/
+//-----------------------------------------------------------
+Static Function F070Unico1(cAliasQryP, cSufP, cCampoP)
+	Local xRet := 0
+
+	If cSufP == "1"
+		xRet := &(cAliasQryP + '->' + cCampoP + cSufP)
+	EndIf
+
+Return xRet
+
 

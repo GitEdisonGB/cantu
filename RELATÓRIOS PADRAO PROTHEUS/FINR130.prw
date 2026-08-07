@@ -575,7 +575,11 @@ Static Function ReportPrint(oReport)
 
     Default __lTempLOT	:= HasTemplate("LOT")
 
-    lSPFin005  := ExistProc( F130Sel( FindFunction( "GetSPName" ), GetSPName( "FIN002", "10" ), "FIN002" ), EngSPS10Signature())
+    If FindFunction( "GetSPName" )
+        lSPFin005  := ExistProc( GetSPName( "FIN002", "10" ), EngSPS10Signature())
+    Else
+        lSPFin005  := ExistProc( "FIN002", EngSPS10Signature())
+    EndIf
 
     If !Empty(MV_PAR36)
         dMVDtBase := MV_PAR36

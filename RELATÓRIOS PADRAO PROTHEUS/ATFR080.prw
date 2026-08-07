@@ -567,7 +567,11 @@ For nInc := 1 To Len( aSM0 )
 					EndIf
 		
 					// Verifica豫o da classifica豫o de Ativo se sofre deprecia豫o
-					lAtClDepr := F080Sel(FindFunction("AtClssVer"),AtClssVer(SN1->N1_PATRIM),SN1->N1_PATRIM $ "NID")
+					If FindFunction("AtClssVer")
+						lAtClDepr := AtClssVer(SN1->N1_PATRIM)
+					Else
+						lAtClDepr := SN1->N1_PATRIM $ "NID"
+					EndIf
 					
 					If lAtClDepr .OR. SN1->N1_PATRIM $ " P" .And. F080Sel(Len(aClassif) > 0,SN1->N1_PATRIM $ cClassif,.T.)
 						//旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커

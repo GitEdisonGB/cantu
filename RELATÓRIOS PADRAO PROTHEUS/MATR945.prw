@@ -30,7 +30,11 @@ Local lVerpesssen 	:= .T.
 Private aFilsCalc := {}
 Private lAutomato := IsBlind()
 
-lVerpesssen := F945Sel(FindFunction("Verpesssen"),Verpesssen(),.T.)
+If FindFunction("Verpesssen")
+lVerpesssen := Verpesssen()
+Else
+lVerpesssen := .T.
+EndIf
 
 If lVerpesssen
 	If TRepInUse()

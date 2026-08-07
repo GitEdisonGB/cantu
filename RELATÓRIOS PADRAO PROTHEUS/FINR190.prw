@@ -1186,7 +1186,9 @@ Static Function FA190ImpR4(aRet As Array, nOrdem As Numeric, aTotais As Array, o
         cInsert += " AND (" + cFilUser + ") "
     EndIf
 
-    cInsert += F190Sel(FindFunction("JurQWRelBx"), JurQWRelBx() , "")
+    If FindFunction("JurQWRelBx")
+        cInsert += JurQWRelBx()
+    EndIf
 
     // seta a ordem de acordo com a opcao do usuario
     cInsert += " ORDER BY " + SQLOrder(cChave)

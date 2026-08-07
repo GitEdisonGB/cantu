@@ -19,9 +19,13 @@ User Function MATR920
 Local 	lVerpesssen := .T.
 Local cRelease as character
 
-lVerpesssen := F920Sel(FindFunction("Verpesssen"),Verpesssen(),.T.)
-
 Local cEndWeb		:= "https://tdn.totvs.com/pages/viewpage.action?pageId=792425840"
+
+If FindFunction("Verpesssen")
+	lVerpesssen := Verpesssen()
+Else
+	lVerpesssen := .T.
+EndIf
 
 cRelease 	:=  GetRPORelease()     
 

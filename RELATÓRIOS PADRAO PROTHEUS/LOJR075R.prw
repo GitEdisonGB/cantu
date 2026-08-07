@@ -15,7 +15,7 @@ Static lTroco := F075Sel(	cPaisLoc <> "BRA",;
 
 Static lMvDescISS	:= SuperGetMV("MV_DESCISS",,.F.)			// Indica se ha desconto do iss no financeiro
 Static oTempTable   := Nil										//Objeto tabela temporaria
-Static lLGPD 		:= F075Sel(ExistFunc("LjPDUse"),LjPDUse(),.F.)	//Verifica se a funcionalidade de Dados Protegidos est· sendo utilizada no sistema.
+Static lLGPD 		:= F075LGPD()	//Verifica se a funcionalidade de Dados Protegidos est· sendo utilizada no sistema.
 Static lL1VLRPGDG 	:= SL1->(ColumnPos("L1_VLRPGDG")) > 0 .AND. SL1->(ColumnPos("L1_VLRPGPX")) > 0 //Verifica se existe o campo onde È gravado o valor da venda paga em Pagamento Digital e  PIX
 
 /*‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹‹
@@ -4412,4 +4412,25 @@ Static Function F075Sel(lCond, xValA, xValB)
 	EndIf
 
 Return uRet
+
+//----------------------------------------------------------
+/*/{Protheus.doc}F075LGPD
+So chama LjPDUse() quando a funcao realmente existe -- extraida
+do seletor generico porque For07Sel avalia os dois ramos sempre,
+e LjPDUse() pode nao existir no ambiente (funcionalidade opcional).
+
+@author Ajuste Grupo Luiz Hohl
+@since  06/08/2026
+@return lRet Logical
+/*/
+//-----------------------------------------------------------
+Static Function F075LGPD()
+	Local lRet := .F.
+
+	If ExistFunc("LjPDUse")
+		lRet := LjPDUse()
+	EndIf
+
+Return lRet
+
 

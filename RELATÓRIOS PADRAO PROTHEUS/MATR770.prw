@@ -157,7 +157,7 @@ TRCell():New(oNotaDev,"D1_TES"		,"SD1"		,RetTitle("D1_TES"		),PesqPict("SD1","D1
 TRCell():New(oNotaDev,"D1_TP"		,"SD1"		,RetTitle("D1_TP"		),PesqPict("SD1","D1_TP"				),TamSx3("D1_TP"		)[1],/*lPixel*/,{|| (cAliasSD1)->D1_TP 		},,,,,,.T.)
 TRCell():New(oNotaDev,"D1_GRUPO"	,"SD1"		,RetTitle("D1_GRUPO"	),PesqPict("SD1","D1_GRUPO"				),TamSx3("D1_GRUPO"		)[1],/*lPixel*/,{|| (cAliasSD1)->D1_GRUPO},,,,,,.T.)
 TRCell():New(oNotaDev,"D1_DTDIGIT"	,"SD1"		,RetTitle("D1_DTDIGIT"	),PesqPict("SD1","D1_DTDIGIT"			),nTamData					 ,/*lPixel*/,{|| (cAliasSD1)->D1_DTDIGIT },,,,,,.T.)
-TRCell():New(oNotaDev,"NCUSTO"		,/*Tabela*/	,RetTitle("D1_CUSTO"	),PesqPict("SD1","D1_CUSTO",14,mv_par09),TamSx3("D1_CUSTO"		)[1],/*lPixel*/,{|| F770Sel(mv_par09==1, (cAliasSD1)->D1_CUSTO, &("D1_CUSTO"+Str(mv_par09,1)))},,,"RIGHT",,,.T.)
+TRCell():New(oNotaDev,"NCUSTO"		,/*Tabela*/	,RetTitle("D1_CUSTO"	),PesqPict("SD1","D1_CUSTO",14,mv_par09),TamSx3("D1_CUSTO"		)[1],/*lPixel*/,{|| F770Custo(mv_par09, cAliasSD1)},,,"RIGHT",,,.T.)
 TRCell():New(oNotaDev,"D1_NFORI"	,"SD1"		,RetTitle("D1_NFORI"	),PesqPict("SD1","D1_NFORI"				),TamSx3("D1_NFORI"		)[1],/*lPixel*/,{|| (cAliasSD1)->D1_NFORI	},,,,,,.F.)
 TRCell():New(oNotaDev,"D1_SERIORI"	,"SD1"		,RetTitle("D1_SERIORI"	),PesqPict("SD1","D1_SERIORI"			),TamSx3("D1_SERIORI"	)[1],/*lPixel*/,{|| (cAliasSD1)->D1_SERIORI	},,,,,,.F.)
                       
@@ -455,3 +455,29 @@ Static Function F770Sel(lCond, xValA, xValB)
 	EndIf
 
 Return uRet
+
+//----------------------------------------------------------
+/*/{Protheus.doc}F770Custo
+Retorna o custo conforme a moeda selecionada (mv_par09). Extraida
+do ternario original porque o campo D1_CUSTO1 nao existe de fato
+(o campo real e D1_CUSTO sem sufixo quando mv_par09==1) -- usar
+F-Sel generico aqui quebraria em runtime, pois teria que montar
+o nome do campo via macro mesmo quando esse ramo nao e o escolhido.
+
+@author Ajuste Grupo Luiz Hohl
+@since  06/08/2026
+@param nParOrdem mv_par09 (moeda selecionada)
+@param cAliasSD1 Alias temporario com os campos D1_CUSTO..D1_CUSTO5
+@return nCusto Variant
+/*/
+//-----------------------------------------------------------
+Static Function F770Custo(nParOrdem, cAliasSD1)
+	Local nCusto
+
+	If nParOrdem==1
+		nCusto := (cAliasSD1)->D1_CUSTO
+	Else
+		nCusto := &("D1_CUSTO"+Str(nParOrdem,1))
+	EndIf
+
+Return nCusto
