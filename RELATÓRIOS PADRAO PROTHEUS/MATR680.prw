@@ -277,12 +277,19 @@ Local cQuebra	:= ""
 Local nMoeda    := 0
 Local aConfSched:= {}
 Local nSection  := 0
-Local oSecao    := oReport:Section(nSection) 
+Local oSecao
 Local cTitNVALOR:= ""
 
 nMoeda := F680Sel(cPaisLoc == "BRA", MV_PAR18, 1)
-aConfSched := F680Sel(isBlind() .And. FWGetRunSchedule(), FWSchPrintCFG(), {})
-nSection := F680Sel(isBlind() .And. FWGetRunSchedule(), aConfSched[4], oReport:Section(1):GetOrder())
+If isBlind() .And. FWGetRunSchedule()
+	aConfSched := FWSchPrintCFG()
+	nSection := aConfSched[4]
+Else
+	aConfSched := {}
+	nSection := oReport:Section(1):GetOrder()
+EndIf
+
+oSecao := oReport:Section(nSection)
 
 Private cNum		:= ""
 Private cProduto	:= ""
@@ -1135,10 +1142,15 @@ Local wnrel     := "MATR680"
 Local aConfSched:= {}
 Local aFieldsPD :={"A1_NOME"}
 
-aConfSched := F680Sel(isBlind() .And. FWGetRunSchedule(), FWSchPrintCFG(), {})
-
 PRIVATE aReturn := { STR0005, 1,STR0006, 1, 2, 1, "", 1 }      //"Zebrado"###"Administracao"
-aReturn[8] := F680Sel(isBlind().And. FWGetRunSchedule(), aConfSched[4], 1)
+
+If isBlind() .And. FWGetRunSchedule()
+	aConfSched := FWSchPrintCFG()
+	aReturn[8] := aConfSched[4]
+Else
+	aConfSched := {}
+	aReturn[8] := 1
+EndIf
 PRIVATE nTamRef := Val(Substr(GetMv("MV_MASCGRD"),1,2))
 PRIVATE nomeprog:= "MATR680"
 PRIVATE cPerg	 := F680Sel(cPaisLoc == "BRA", "MTR680", "MR680A")
