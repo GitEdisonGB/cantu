@@ -789,6 +789,7 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Local aSD2          := {}
 	Local nField        := 0
 	Local nOpc          := 0
+	Local cAliasDbg     := ""
 	Local oTES          := Nil
 	Local jValores      := Nil
 	Local jIcms         := Nil
@@ -956,6 +957,17 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			lChkTrbGen)
 		MaFisAlt("NF_UFDEST", oTES["uf"])
 		MaFisAlt("NF_PNF_UF", oTES["uf"])
+
+		If lComplemento
+			LogHV("DEBUG COMPICM: lComplemento=" + cValToChar(lComplemento) + ;
+				" D2_TOTAL=" + cValToChar(nVlrItemSD2) + ;
+				" D2_PICM=" + cValToChar(nPICMSHV) + ;
+				" nBaseICMSHV=" + cValToChar(nBaseICMSHV) + ;
+				" D2_TES=" + cTesUsar + ;
+				" lChkTrbGen=" + cValToChar(lChkTrbGen) + ;
+				" oTES.uf=" + oTES["uf"] + ;
+				" cDocOri=" + cDocOri + " cSerOri=" + cSerOri)
+		EndIf
 	EndIf
 
 	BeginTran()
@@ -987,6 +999,58 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			For nField := 1 To SF2->(FCount())
 				oJSF2[AllTrim(SF2->(FieldName(nField)))] := SF2->(FieldGet(nField))
 			Next nField
+		EndIf
+
+		If lComplemento
+			cAliasDbg := GetNextAlias()
+			BeginSQL Alias cAliasDbg
+				SELECT FT_BASEICM, FT_ALIQICM, FT_VALICM, FT_VALCONT
+				FROM %Table:SFT% SFT
+				WHERE FT_FILIAL   = %XFilial:SFT%
+				  AND FT_NFISCAL  = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_DOC"})][2]%
+				  AND FT_SERIE    = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_SERIE"})][2]%
+				  AND FT_LOJA     = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_LOJA"})][2]%
+				  AND SFT.%NotDel%
+			EndSQL
+			If !(cAliasDbg)->(EOF())
+				LogHV("DEBUG COMPICM POS-GRAVACAO: FT_BASEICM=" + cValToChar((cAliasDbg)->FT_BASEICM) + ;
+					" FT_ALIQICM=" + cValToChar((cAliasDbg)->FT_ALIQICM) + ;
+					" FT_VALICM=" + cValToChar((cAliasDbg)->FT_VALICM) + ;
+					" FT_VALCONT=" + cValToChar((cAliasDbg)->FT_VALCONT))
+
+				// Motor fiscal (AJUDA:COMPICM) as vezes nao leva a aliquota pro livro fiscal,
+				// zerando base/aliquota (confirmado em lancamento manual e via integracao -
+				// nao e bug do HiveCte, e comportamento intermitente do motor fiscal do
+				// Protheus). Recalcula com os mesmos valores ja enviados ao motor.
+				If (cAliasDbg)->FT_BASEICM == 0 .And. nPICMSHV > 0
+					TCSQLExec("UPDATE " + RetSQLName("SFT") + " SET FT_BASEICM = " + cValToChar(Round(nValICMSHV / (nPICMSHV / 100), 2)) + ;
+						", FT_ALIQICM = " + cValToChar(nPICMSHV) + ;
+						", FT_TOTAL = 0" + ;
+						" WHERE R_E_C_N_O_ = " + cValToChar((cAliasDbg)->(Recno())))
+					LogHV("CORRECAO AUTOMATICA COMPICM: base/aliquota/total corrigidos na SFT.")
+				EndIf
+			Else
+				LogHV("DEBUG COMPICM POS-GRAVACAO: registro SFT nao encontrado (ainda nao commitado?)")
+			EndIf
+			(cAliasDbg)->(DBCloseArea())
+
+			cAliasDbg := GetNextAlias()
+			BeginSQL Alias cAliasDbg
+				SELECT F3_BASEICM
+				FROM %Table:SF3% SF3
+				WHERE F3_NFISCAL  = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_DOC"})][2]%
+				  AND F3_SERIE    = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_SERIE"})][2]%
+				  AND F3_LOJA     = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_LOJA"})][2]%
+				  AND F3_CLIEFOR  = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_CLIENTE"})][2]%
+				  AND SF3.%NotDel%
+			EndSQL
+			If !(cAliasDbg)->(EOF()) .And. (cAliasDbg)->F3_BASEICM == 0 .And. nPICMSHV > 0
+				TCSQLExec("UPDATE " + RetSQLName("SF3") + " SET F3_BASEICM = " + cValToChar(Round(nValICMSHV / (nPICMSHV / 100), 2)) + ;
+					", F3_ALIQICM = " + cValToChar(nPICMSHV) + ;
+					" WHERE R_E_C_N_O_ = " + cValToChar((cAliasDbg)->(Recno())))
+				LogHV("CORRECAO AUTOMATICA COMPICM: base/aliquota corrigidos na SF3.")
+			EndIf
+			(cAliasDbg)->(DBCloseArea())
 		EndIf
 
 		// Complemento de ICMS e so ajuste fiscal (correcao de imposto do CT-e
