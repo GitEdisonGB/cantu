@@ -1,3 +1,4 @@
 *.dmp
 relatorio_*.html
 relatorio_*.pdf
+.playwright-mcp/

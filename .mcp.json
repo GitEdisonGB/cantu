@@ -5,6 +5,34 @@
       "args": [
         "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\mcp-cantu-oracle-readonly\\server.py"
       ]
+    },
+    "cantu-ftp-readonly": {
+      "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\mcp-cantu-ftp-readonly\\server.py"
+      ]
+    },
+    "playwright-hohl": {
+      "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\nodejs-portable\\node-v24.19.0-win-x64\\node.exe",
+      "args": [
+        "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\nodejs-portable\\node-v24.19.0-win-x64\\node_modules\\@playwright\\mcp\\cli.js",
+        "--user-data-dir",
+        "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\playwright-profile-hohl"
+      ]
+    },
+    "playwright-cantu": {
+      "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\nodejs-portable\\node-v24.19.0-win-x64\\node.exe",
+      "args": [
+        "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\nodejs-portable\\node-v24.19.0-win-x64\\node_modules\\@playwright\\mcp\\cli.js",
+        "--user-data-dir",
+        "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\playwright-profile-cantu"
+      ]
+    },
+    "rag-search": {
+      "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\mcp-rag-search\\server.py"
+      ]
     }
   }
 }

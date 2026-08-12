@@ -76,8 +76,16 @@
 		{
 			"args": [],
 			"label": "U_JOBESTOD"
+		},
+		{
+			"args": [],
+			"label": "U_DIAGLGI"
+		},
+		{
+			"args": [],
+			"label": "U_DIAGLG2"
 		}
 	],
-	"lastProgramExecuted": "U_JOBESTOD",
+	"lastProgramExecuted": "U_HiveCte",
 	"lastProgramArguments": []
 }
