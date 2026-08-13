@@ -3510,7 +3510,7 @@ User Function XmlNfeSef(cTipo,cSerie,cNota,cClieFor,cLoja,cNotaOri,cSerieOri)
 
 								//Edison G. Barbieri 25/09/25 tratativa para exportação unidade de medida BLS (para somente alguns produtos)
 								cUmnew := ""
-								if alltrim(cCodProd) $ "01050997|01050976|01051013"
+								if alltrim(cCodProd) $ "01050997|01050976|01051013|01050931"
 									cUmnew := "BLS"
 								else
 									cUmnew := IIF(cImpUni=='2',SB1->B1_SEGUM,SB1->B1_UM)
