@@ -84,8 +84,16 @@
 		{
 			"args": [],
 			"label": "U_DIAGLG2"
+		},
+		{
+			"args": [],
+			"label": "U_EASYBKF"
+		},
+		{
+			"args": [],
+			"label": "U_JOBEASYF"
 		}
 	],
-	"lastProgramExecuted": "U_HiveCte",
+	"lastProgramExecuted": "U_JOBEASYF",
 	"lastProgramArguments": []
 }
