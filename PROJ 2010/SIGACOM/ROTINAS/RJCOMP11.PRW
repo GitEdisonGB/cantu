@@ -26,7 +26,8 @@ PRIVATE aRotina := { { OemToAnsi("Pesquisar")  		,"AxPesqui"   , 0 , 1} ,;
 					 { OemToAnsi("Visualizar") 		,"U_RJC11WIN" , 0 , 2} ,;
 					 { OemToAnsi("Incluir")    		,"U_RJC11WIN" , 0 , 3} ,;
 					 { OemToAnsi("Alterar")    		,"U_RJC11WIN" , 0 , 4} ,;
-					 { OemToAnsi("Excluir")    		,"U_RJC11WIN" , 0 , 5} } 
+					 { OemToAnsi("Excluir")    		,"U_RJC11WIN" , 0 , 5} ,;
+					 { OemToAnsi("Incluir (Padrao)")	,"U_RJC11INP" , 0 , 0} } 
 					 
 PRIVATE cCadastro  := OemToAnsi("Descontos Fixos Fornecedores")
 
@@ -67,14 +68,14 @@ Return(.T.)
 */
  
 *--------------------------------------------------------------*
-User Function RJC11WIN( cAlias, nReg, nOpc, xVar, nOper )       
+User Function RJC11WIN( cAlias, nReg, nOpc, xVar, nOper, lIncPadrao )       
 *--------------------------------------------------------------*
 
 Local aArea      := GetArea()
+Local nI         := 0
 Local aPosObj    := {}
 Local aObjects   := {}
 Local aSize      := MsAdvSize( .F. )
-Local aGet       := {}
 Local aTravas    := {}  
 Local aRecZ31    := {}
 Local aFldsNwTMP := {}                      
@@ -103,15 +104,16 @@ Local nPosItem   := 0
 Local nCntFor    := 0
 Local nUsado     := 0
 Local nOpcA      := 0
-Local nOpcVisul  := 0
-Local nSx8Len    := GetSx8Len()
 Local oDlgEmp    
 
 PRIVATE aColsZ31  := {}
 PRIVATE aHeadZ31  := {}
+PRIVATE nUltPercRp := -1
 
 
 DEFAULT nOper    := 1  
+DEFAULT lIncPadrao := .F.
+
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 //³Chama função para monitor uso de fontes customizados³
@@ -128,12 +130,16 @@ U_USORWMAKE(ProcName(),FunName())
 	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
 	//³Atribui aos Campos registrados os valores do registro da tabela posicionado ³
 	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-	If nOpc != 3
-		For i := 1 TO FCount()
-			M->&(Eval(bCampo, i)) := FieldGet(i)
-		Next i                  
+	If nOpc != 3 .Or. lIncPadrao
+		For nI := 1 TO FCount()
+			M->&(Eval(bCampo, nI)) := FieldGet(nI)
+		Next nI                  
 	EndIf
 	
+	If lIncPadrao
+		M->Z30_NUMERO := Space(TamSX3("Z30_NUMERO")[1])
+	EndIf
+
 	dbSelectArea("SX3")
 	dbSetOrder(1)
 	dbSeek(cAliasZ30)
@@ -142,9 +148,9 @@ U_USORWMAKE(ProcName(),FunName())
 			AADD(aCpoEnch,x3_campo)
 	  		If nOpc != 5
 		   		If ALLTRIM(x3_campo) == "Z30_NUMERO"
-		      		If nOpc != 4
-		      			AADD(aAlterEnch,x3_campo)
-		      		EndIf
+		     	If nOpc != 4 .Or. lIncPadrao
+		     		AADD(aAlterEnch,x3_campo)
+		     	EndIf
 		     	Else
 		     		AADD(aAlterEnch,x3_campo)
 		     	EndIf
@@ -193,7 +199,7 @@ U_USORWMAKE(ProcName(),FunName())
 	//³Montagem do aCols - TABELA Z31                                          ³
 	//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
 
-	If nOpc != 3
+	If nOpc != 3 .Or. lIncPadrao
 		
 		dbSelectArea(cEntidZ31)
 		dbSetOrder(3)
@@ -237,6 +243,8 @@ U_USORWMAKE(ProcName(),FunName())
 	
 	aFldsNwZ31 := aFldsNwTMP
 
+	nUltPercRp := aColsZ31[1][aScan(aHeadZ31,{|x| AllTrim(x[2])=="Z31_PERDES"})]
+
 	If ( lTravas )
 
 		AAdd( aObjects, { 080, 080, .T., .F. } )
@@ -265,7 +273,7 @@ U_USORWMAKE(ProcName(),FunName())
 
 		oGetZ31 := MsNewGetDados():New( 5, 5, aPosObj[2,3]-aPosObj[2,1]-20,aPosObj[2,4]-aPosObj[2,2]-6, nOpcNewGd, "U_RJC11LCP()", "AllwaysTrue()", "+" + cItemZ31, , 000, 999,, STRING_NULL, .T., oFolder:aDialogs[1], aHeadZ31 ,aColsZ31 )
 
-		ACTIVATE MSDIALOG oDlgEmp ON INIT EnchoiceBar(oDlgEmp,{||nOpcA:=1,If(oGetZ31:TudoOk().AND.U_RJC11TOK(),oDlgEmp:End(),nOpcA:=0)},{||oDlgEmp:End()})
+		ACTIVATE MSDIALOG oDlgEmp ON INIT EnchoiceBar(oDlgEmp,{||nOpcA:=1,If(oGetZ31:TudoOk().AND.(lDelete .Or. U_RJC11TOK()),oDlgEmp:End(),nOpcA:=0)},{||oDlgEmp:End()})
 
 		If ( nOpcA == 1 )
 			Begin Transaction
@@ -319,6 +327,7 @@ Local lGravou   := .F.
 Local lExist    := .F.
 Local nLoop     := 0
 Local nLoop2    := 0
+Local nI        := 0
 Private aCols   := oGetZ31:aCols
 Private aHeader := oGetZ31:aHeader
 Private nPField := aScan(aHeader,{|x| AllTrim(x[2])=="Z31_ITEM"})
@@ -462,9 +471,9 @@ Local lRet := .T.
 Local nPGRP := aScan(aHeader,{|x| AllTrim(x[2])=="Z31_CODGRP"})
 Local nPPRD := aScan(aHeader,{|x| AllTrim(x[2])=="Z31_CODPRD"})
 
-Local nMaxFor   := Len(aCols)
-Local nUsado    := Len(aHeader)
-Local lTestaDel := nUsado <> Len(aCols[1])
+Local nI        := 0
+Local nPPerc    := 0
+Local nJ        := 0
 
 //ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 //³Chama função para monitor uso de fontes customizados³
@@ -488,6 +497,19 @@ U_USORWMAKE(ProcName(),FunName())
 			EndIf			
 		EndIf
 	Next nI	
+
+	If n == 1 .And. Len(aCols) > 1
+		nPPerc := aScan(aHeader,{|x| AllTrim(x[2])=="Z31_PERDES"})
+		If nPPerc > 0 .And. aCols[1,nPPerc] <> nUltPercRp
+			nUltPercRp := aCols[1,nPPerc]
+			If MsgYesNo("Deseja aplicar o mesmo percentual de desconto para todas as linhas abaixo?")
+				For nJ := 2 To Len(aCols)
+					aCols[nJ,nPPerc] := aCols[1,nPPerc]
+				Next nJ
+				oGetZ31:oBrowse:Refresh(.T.)
+			EndIf
+		EndIf
+	EndIf
 
 Return (lRet)
 
@@ -573,3 +595,58 @@ U_USORWMAKE(ProcName(),FunName())
 	RestArea(aArea)	                               
 	
 Return (lRet)
+
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} RJC11INP
+Inclusao de contrato de desconto fornecedor com pre-preenchimento a
+partir de um contrato padrao (parametro MV_CTZ30P). Usuario apenas
+ajusta os dados e confirma.
+@type    function
+@author  Edison Barbieri
+@since   13/08/2026
+@return  lGravou, logical, .T. se gravou com sucesso, .F. caso contrario
+/*/
+//-------------------------------------------------------------------
+User Function RJC11INP()
+Local aArea      := GetArea()
+Local cContrato  := ""
+Local lGravou    := .F.
+
+//-------------------------------------------------------
+//Chama funcao para monitor uso de fontes customizados
+//-------------------------------------------------------
+U_USORWMAKE(ProcName(),FunName())
+
+	cContrato := AllTrim(SuperGetMV("MV_CTZ30P", .F., "PADRAO001"))
+
+	If Empty(cContrato)
+		MsgAlert("O parametro MV_CTZ30P nao esta configurado." + Chr(13) + ;
+			"Acesse o Configurador e informe o numero do contrato padrao.", ;
+			"Parametro nao encontrado")
+		RestArea(aArea)
+		Return .F.
+	EndIf
+
+	dbSelectArea("Z30")
+	dbSetOrder(1)
+	If !MsSeek(xFilial("Z30") + cContrato)
+		MsgAlert("O contrato padrao [" + cContrato + "] informado no parametro MV_CTZ30P" + Chr(13) + ;
+			"nao foi encontrado.", "Contrato padrao invalido")
+		RestArea(aArea)
+		Return .F.
+	EndIf
+
+	If !MsgYesNo("Deseja usar o contrato [" + cContrato + "] como base?" + Chr(13) + ;
+			"Os dados serao pre-preenchidos para edicao.", ;
+			"Incluir com Pre-preenchimento")
+		RestArea(aArea)
+		Return .F.
+	EndIf
+
+	lGravou := U_RJC11WIN("Z30", Z30->(Recno()), 3, NIL, 1, .T.)
+
+	RestArea(aArea)
+
+Return(lGravou)
+
