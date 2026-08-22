@@ -6,6 +6,12 @@
         "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\mcp-cantu-oracle-readonly\\server.py"
       ]
     },
+    "cantu-oracle-homolog-readonly": {
+      "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "C:\\Users\\edison.barbieri\\OneDrive - Grupo Luiz Höhl\\SegundoCerebro-Bot\\mcp-cantu-oracle-homolog-readonly\\server.py"
+      ]
+    },
     "cantu-ftp-readonly": {
       "command": "C:\\Users\\edison.barbieri\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
       "args": [
