@@ -8,62 +8,117 @@
 
 
 /*{Protheus.doc} FATJOBCP
-Fun็๕es que serแ schedulada para faturamento.
+Funcao schedulada para faturamento. Percorre TODAS as filiais cadastradas
+na SM0 para a empresa informada, num unico agendamento.
 @author  Edison G. Babieri
 @version P12
 @since 	 30/07/2021
+@param   aParam, array, {cEmpresa} - default {"40"}
 @return  Nil
 */
-
+//Alterado para rodar todas as filiais da empresa em um unico agendamento - Edison Barbieri - Dt.22/08/2026
 USER FUNCTION FATJOBCP(aParam)
 
-	Local olErro := ErrorBlock({|e| IIF(VALTYPE(e:Description)=="C",CONOUT("### FATJOBCP: ERRO BEGIN SEQUENCE:  "+e:Description),e:Description) })
+	Local olErro 		:= ErrorBlock({|e| fFatJobErr(e)})
 	Local cNomeSemaf	:= "FATJOBCP"
 	Local nHSemafaro
+	Local aFiliais		:= {}
+	Local nFil
 
 	Private clEmp
 	Private clFilial
 
+	Default aParam	:= {"40"}
 
-	Default aParam	:= {"40", "10"}
-
-	clEmp     := aParam[1]
-	clFilial  := aParam[2]
-
-	PREPARE ENVIRONMENT EMPRESA clEmp FILIAL clFilial
+	clEmp := aParam[1]
 
 	/*--------------------------
-		ABRE SEMAFORO
+		MONTA A LISTA DE FILIAIS DA EMPRESA (SM0)
 	---------------------------*/
-	cNomeSemaf	:= cNomeSemaf+clEmp+clFilial
-	nHSemafaro	:= U_CPXSEMAF("A", cNomeSemaf)			
-	IF nHSemafaro > 0
-			
-		Begin Sequence
-			
-			clDateTime	:= DTOS(DDATABASE)+ TIME()
-			
-			CONOUT("### FATJOBCP: INICIO [" +clDateTime +"] -"+ DTOC(DDATABASE)+ " " + TIME() + " EMPRESA " + clEmp + " FILIAL " + clFilial )
-							
-			U_RJUJOBL1()
-				
-			CONOUT("### FATJOBCP: FINAL [" +clDateTime +"] -"+ DTOC(DDATABASE)+ " " + TIME() + " EMPRESA " + clEmp + " FILIAL " + clFilial )
-			
-		End Sequence
+	RpcClearEnv()
+	RPCSetType(3)
+	PREPARE ENVIRONMENT EMPRESA clEmp FILIAL "01"
 
-		/*--------------------------
-			FECHA SEMAFORO
-		---------------------------*/
-		U_CPXSEMAF("F", cNomeSemaf, nHSemafaro)			
-	ELSE
-		CONOUT("### FATJOBCP: NAO FOI POSSIVEL ABRIR O SEMAFORO - ROTINA Jม ESTA EM EXECUCAO ["+cNomeSemaf+"]" + " EMPRESA " + clEmp + " FILIAL " + clFilial)
-	ENDIF
-	
-	ErrorBlock(olErro)		
-	
+	dbSelectArea("SM0")
+	dbSetOrder(1)
+	dbSeek(clEmp)
+	While !SM0->(EOF()) .AND. SM0->M0_CODIGO == clEmp
+		aAdd(aFiliais, SM0->M0_CODFIL)
+		SM0->(dbSkip())
+	Enddo
+
 	RESET ENVIRONMENT
 
+	If Len(aFiliais) == 0
+		CONOUT("### FATJOBCP: NENHUMA FILIAL ENCONTRADA NA SM0 PARA A EMPRESA " + clEmp)
+	Else
+
+		/*--------------------------
+			ABRE SEMAFORO (1 POR EMPRESA)
+		---------------------------*/
+		cNomeSemaf	:= cNomeSemaf+clEmp
+		nHSemafaro	:= U_CPXSEMAF("A", cNomeSemaf)
+		IF nHSemafaro > 0
+
+			For nFil := 1 To Len(aFiliais)
+
+				clFilial := aFiliais[nFil]
+
+				RpcClearEnv()
+				RPCSetType(3)
+				PREPARE ENVIRONMENT EMPRESA clEmp FILIAL clFilial
+
+				Begin Sequence
+
+					clDateTime	:= DTOS(DDATABASE)+ TIME()
+
+					CONOUT("### FATJOBCP: INICIO [" +clDateTime +"] -"+ DTOC(DDATABASE)+ " " + TIME() + " EMPRESA " + clEmp + " FILIAL " + clFilial )
+
+					U_RJUJOBL1()
+
+					CONOUT("### FATJOBCP: FINAL [" +clDateTime +"] -"+ DTOC(DDATABASE)+ " " + TIME() + " EMPRESA " + clEmp + " FILIAL " + clFilial )
+
+				End Sequence
+
+			Next nFil
+
+			RESET ENVIRONMENT
+
+			/*--------------------------
+				FECHA SEMAFORO
+			---------------------------*/
+			U_CPXSEMAF("F", cNomeSemaf, nHSemafaro)
+		ELSE
+			CONOUT("### FATJOBCP: NAO FOI POSSIVEL ABRIR O SEMAFORO - ROTINA JA ESTA EM EXECUCAO ["+cNomeSemaf+"]" + " EMPRESA " + clEmp)
+		ENDIF
+
+	EndIf
+
+	ErrorBlock(olErro)
+
 RETURN
+
+/*{Protheus.doc} fFatJobErr
+Handler de erro do Begin Sequence de FATJOBCP - registra a mensagem no log
+do console sem interromper as demais filiais do loop.
+@type function
+@author  Edison Barbieri
+@since 	 22/08/2026
+@param   oErro, object, objeto de erro recebido pelo ErrorBlock
+@return  Nil
+*/
+Static Function fFatJobErr(oErro)
+	Local cMsg := ""
+
+	If ValType(oErro:Description) == "C"
+		cMsg := oErro:Description
+	Else
+		cMsg := "Erro desconhecido"
+	EndIf
+
+	CONOUT("### FATJOBCP: ERRO BEGIN SEQUENCE:  "+cMsg)
+
+Return Nil
 
 /*
 ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
@@ -83,12 +138,8 @@ RETURN
 	*---------------------------------------------------------------------------*
 User Function RJUJOBL1(aParam)
 	*---------------------------------------------------------------------------*
-	Private nHdlLog := nil
-	Private cArqLog := "RJUJOBL1_"+dtos(DATE())+"_"+StrTran(cValToChar(time()),":","")+".log"  // arquivo de log das opera็๕es
 
-//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ
-//ณChama fun็ใo para monitor uso de fontes customizadosณ
-//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤ
+//Chama funcao para monitor uso de fontes customizados
 	U_USORWMAKE(ProcName(),FunName())
 
 
@@ -108,29 +159,51 @@ User Function RJUJOBL1(aParam)
 		dbGoTop()
 		dbSeek(cFilAnt)
 		While !SL1->(EOF()) .AND. SL1->L1_FILIAL == cFilAnt
-			If ALLTRIM(SL1->L1_SITUA) == "ER" .AND. SL1->L1_X_PJOB != "S" 
-				If RecLock("SL1",.F.)
-					//--VERIFICA A VERSAO DO RPO QUE O JOB ESTA SENDO EXECUTADO, CASO SEJA DBF E' NA ESTACAO, CASO CONTRARIO NA RETAGUARDA.
-					If cRpoDB == "DBF"
-						//--PDV
-						SL1->L1_SITUA	:= "00"
+			If ALLTRIM(SL1->L1_SITUA) == "ER"
+
+				//Corrige L1_CLIENTE/L1_LOJA em branco (bug de gravacao) antes de qualquer outra validacao - Edison Barbieri - Dt.22/08/2026
+				If Empty(SL1->L1_CLIENTE) .OR. Empty(SL1->L1_LOJA)
+					If RecLock("SL1",.F.)
+						If Empty(SL1->L1_CLIENTE)
+							SL1->L1_CLIENTE := "000000001"
+						EndIf
+						If Empty(SL1->L1_LOJA)
+							SL1->L1_LOJA := "40" + SL1->L1_FILIAL
+						EndIf
+						CONOUT("RJUJOBL1: L1_CLIENTE/L1_LOJA em branco, ajustado! " + SL1->L1_DOC )
+						SL1->(MsUnLock())
+					EndIf
+				EndIf
+
+				If SL1->L1_X_PJOB != "S"
+					If RecLock("SL1",.F.)
+						//--VERIFICA A VERSAO DO RPO QUE O JOB ESTA SENDO EXECUTADO, CASO SEJA DBF NA ESTACAO, CASO CONTRARIO NA RETAGUARDA.
+						If cRpoDB == "DBF"
+							//--PDV
+							SL1->L1_SITUA	:= "00"
+						Else
+							//--RETAGUARDA
+							SL1->L1_SITUA	:= "RX"
+						EndIf
+						SL1->L1_X_PJOB	:= "S"
+						conout("Atualizando registro! " + SL1->L1_DOC )
+						SL1->(MsUnLock())
+					EndIf
+				ElseIf SL1->L1_X_PJOB == "S"
+					//Verifica se ja existe titulo na SE1 antes de desistir - Edison Barbieri - Dt.22/08/2026
+					If fSE1Existe(SL1->L1_FILIAL, SL1->L1_DOC, SL1->L1_SERIE, SL1->L1_CLIENTE, SL1->L1_LOJA)
+						If RecLock("SL1",.F.)
+							If cRpoDB == "DBF"
+								SL1->L1_SITUA	:= "00"
+							Else
+								SL1->L1_SITUA	:= "RX"
+							EndIf
+							CONOUT("RJUJOBL1: Titulo encontrado na SE1, corrigindo novamente! " + SL1->L1_DOC )
+							SL1->(MsUnLock())
+						EndIf
 					Else
-						//--RETAGUARDA
-						SL1->L1_SITUA	:= "RX"
+						CONOUT("RJUJOBL1: L1_FILIAL = "+SL1->L1_FILIAL+" | L1_NUM = "+SL1->L1_NUM+" | L1_CLIENTE = "+SL1->L1_CLIENTE+" | L1_LOJA = "+SL1->L1_LOJA+" | L1_DOC = "+SL1->L1_DOC+" | L1_SERIE = "+SL1->L1_SERIE)
 					EndIf
-					SL1->L1_X_PJOB	:= "S"
-					conout("Atulizando registro! " + SL1->L1_DOC )
-					SL1->(MsUnLock())
-				EndIf
-			ElseIf ALLTRIM(SL1->L1_SITUA) == "ER" .AND. SL1->L1_X_PJOB == "S"
-				If nHdlLog == nil
-					If !fBegFile()
-						CONOUT(TIME()+"RJUJOBL1-PROBLEMA NA CRIACAO DO ARQUIVO DE LOG.")
-					EndIf
-				EndIf
-				If nHdlLog != nil
-					cTEXTO := "L1_FILIAL = "+SL1->L1_FILIAL+" | L1_NUM = "+SL1->L1_NUM+" | L1_CLIENTE = "+SL1->L1_CLIENTE+" | L1_LOJA = "+SL1->L1_LOJA+" | L1_DOC = "+SL1->L1_DOC+" | L1_SERIE = "+SL1->L1_SERIE
-					fWrtFile(cTEXTO)
 				EndIf
 			EndIf
 			SL1->(dbSkip())
@@ -140,96 +213,47 @@ User Function RJUJOBL1(aParam)
 		CONOUT(TIME()+"RJUJOBL1-PROBLEMA COM O CODIGO DA EMPRESA/FILIAL.")
 	EndIf
 
-	If nHdlLog != nil
-		fEndFile()
-	EndIf
-
 	ConOut(Time() + " - " + cEmpAnt + cFilAnt + " - RJUJOBL1 - " + "FIM")
 
 Return
 
-
-
-/*
-ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
-ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
-ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
-ฑฑบPrograma  ณfBegFile    บAutor  ณRafael Parma      บ Data ณ  11/12/09   บฑฑ
-ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
-ฑฑบDesc.     ณInicializa็ใo do arquivo de log.                            บฑฑ
-ฑฑบ          ณ                                                            บฑฑ
-ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
-ฑฑบUso       ณTOTVS                                                       บฑฑ
-ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
-ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
-฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
+/*{Protheus.doc} fSE1Existe
+Verifica se existe titulo financeiro correspondente na SE1 (nao deletado),
+usado para validar se um registro da SL1 preso em "ER" pode ser corrigido
+mesmo apos ja ter sido tratado uma vez pelo job (L1_X_PJOB="S").
+@type function
+@author  Edison Barbieri
+@since 	 22/08/2026
+@param   cFilAux, character, filial do titulo
+@param   cDoc, character, numero do documento (E1_NUM)
+@param   cSerie, character, serie (E1_PREFIXO)
+@param   cCliente, character, codigo do cliente
+@param   cLoja, character, loja do cliente
+@return  lRet, logical, .T. se encontrou titulo na SE1
 */
+Static Function fSE1Existe(cFilAux, cDoc, cSerie, cCliente, cLoja)
+	Local lRet      := .F.
+	Local cAliasSE1 := GetNextAlias()
+	Local cQuery    := ""
 
-Static Function fBegFile()
-	Local lRet := .T.
+	cQuery := " SELECT COUNT(*) QTD "
+	cQuery += "   FROM " + RetSQLName("SE1") + " "
+	cQuery += "  WHERE E1_FILIAL  = '" + cFilAux  + "' "
+	cQuery += "    AND E1_NUM     = '" + cDoc     + "' "
+	cQuery += "    AND E1_PREFIXO = '" + cSerie   + "' "
+	cQuery += "    AND E1_CLIENTE = '" + cCliente + "' "
+	cQuery += "    AND E1_LOJA    = '" + cLoja    + "' "
+	cQuery += "    AND D_E_L_E_T_ = ' ' "
 
-	//ฺฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฟ
-	//ณ Cria o arquivo texto                                                ณ
-	//ภฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤู
+	TCQUERY ChangeQuery(cQuery) NEW ALIAS (cAliasSE1)
 
-	cDestino := "\RJULOBL1\"
+	dbSelectArea(cAliasSE1)
+	(cAliasSE1)->(dbGoTop())
 
-	If !File(cDestino)
-		MAKEDIR(cDestino)
+	If (cAliasSE1)->QTD > 0
+		lRet := .T.
 	EndIf
 
-	nHdlLog := fCreate((cDestino+cArqLog))
+	(cAliasSE1)->(dbCloseArea())
 
-	If nHdlLog == -1
-		lRet := .F.
-	Endif
-
-Return (lRet)
-
-/*
-ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
-ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
-ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
-ฑฑบPrograma  ณfWrtFile    บAutor  ณRafael Parma      บ Data ณ  11/12/09   บฑฑ
-ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
-ฑฑบDesc.     ณEscreve no arquivo de log.                                  บฑฑ
-ฑฑบ          ณ                                                            บฑฑ
-ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
-ฑฑบUso       ณTOTVS                                                       บฑฑ
-ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
-ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
-฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
-*/
-
-Static Function fWrtFile(cLin)
-	Local lRet := .T.
-	Local cSTR := cLin
-
-	cSTR := dtos(ddatabase)+"-"+cValToChar(time())+"-"+cSTR+chr(13)+chr(10)
-
-	If fWrite(nHdlLog,cSTR,Len(cSTR)) != Len(cSTR)
-		lRet := .F.
-	EndIf
-
-Return (lRet)
-
-/*
-ÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜÜ
-ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
-ฑฑษออออออออออัออออออออออหอออออออัออออออออออออออออออออหออออออัอออออออออออออปฑฑ
-ฑฑบPrograma  ณfEndFile    บAutor  ณRafael Parma      บ Data ณ  11/12/09   บฑฑ
-ฑฑฬออออออออออุออออออออออสอออออออฯออออออออออออออออออออสออออออฯอออออออออออออนฑฑ
-ฑฑบDesc.     ณFinaliza็ใo do arquivo de log.                              บฑฑ
-ฑฑบ          ณ                                                            บฑฑ
-ฑฑฬออออออออออุออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออนฑฑ
-ฑฑบUso       ณTOTVS                                                       บฑฑ
-ฑฑศออออออออออฯออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผฑฑ
-ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ
-฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿฿
-*/
-
-Static Function fEndFile()
-
-	fClose(nHdlLog)
-
-Return
+Return lRet

@@ -7810,9 +7810,6 @@ Static Function NfeIde(cChave,aNota,cNatOper,aDupl,aNfVinc,cVerAmb,aNfVincRur,aR
 		cString += '<infNFe versao="T01.00">'
 	endif
 
-	//>>> TODO-DIAGREF (início 03/08/2026, Edison Barbieri) - log temporário para investigar rejeição SEFAZ 1111 em devoluções. Remover após diagnóstico. <<<
-	LogDiagRef("DIAGREF|"+cChave+"|cTipo="+aNota[04]+"|F_TIPO="+aNota[05]+"|TPCOMPL="+aNota[11]+"|GOV="+cValToChar(aNota[12])+"|natOp="+cNatOper)
-
 	cString += '<ide>'
 	cString += '<cUF>'+ConvType(aUF[aScan(aUF,{|x| x[1] == Upper(SM0->M0_ESTCOB)})][02],02)+'</cUF>'
 	cString += '<cNF>'+ConvType(cNumNf,08)+'</cNF>'
@@ -7882,7 +7879,6 @@ Static Function NfeIde(cChave,aNota,cNatOper,aDupl,aNfVinc,cVerAmb,aNfVincRur,aR
 				cString += '<NFRef>'
 			endif
 
-			LogDiagRef("DIAGREF|"+cChave+"|bloco=DKN|DKN_CHVNFE="+cValToChar((cAliasRef)->DKN_CHVNFE)+"|DKN_ITXML="+cValToChar((cAliasRef)->DKN_ITXML))
 			if !empty((cAliasRef)->DKN_CHVNFE) .and. !( (cAliasRef)->DKN_CHVNFE $ cChvDupli )
 				cString += '<refNFe>' + (cAliasRef)->DKN_CHVNFE + '</refNFe>'
 				cChvDupli += (cAliasRef)->DKN_CHVNFE + '-'
@@ -7911,7 +7907,6 @@ Static Function NfeIde(cChave,aNota,cNatOper,aDupl,aNfVinc,cVerAmb,aNfVincRur,aR
 					If cVerAmb >= "2.00" .And. lNfVincRur .And. !lNfVinc
 						If !Empty(aNfVinc[Nx][7]) // Contem chave de NF-e ou Ct-e
 							If !(aNfVinc[Nx][7] $ cChvDupli)
-								LogDiagRef("DIAGREF|"+cChave+"|bloco=aNfVinc|cTpNota="+cTpNota+"|chaveRef="+aNfVinc[Nx][7]+"|especie="+cValToChar(aNfVinc[Nx][6])+"|cfopUsado="+cValToChar(IIf(Len(aNfVinc[Nx]) > 13 .And. !Empty(aNfVinc[Nx][14]),aNfVinc[Nx][14],cCFOP)))
 								cString += refnfesig(cTpNota,aNfVinc[Nx][7],aNfVinc[Nx][6],IIf(Len(aNfVinc[Nx]) > 13 .And. !Empty(aNfVinc[Nx][14]),aNfVinc[Nx][14],cCFOP))
 								cChvDupli += aNfVinc[Nx][7]+'-'
 							EndIf
@@ -7951,7 +7946,6 @@ Static Function NfeIde(cChave,aNota,cNatOper,aDupl,aNfVinc,cVerAmb,aNfVincRur,aR
 			else
 				For nX := 1 To Len(aNfVCdd)
 					If !(aNfVCdd[Nx][7] $ cChvDupli)
-						LogDiagRef("DIAGREF|"+cChave+"|bloco=aNfVCdd|cTpNota="+cTpNota+"|chaveRef="+aNfVCdd[Nx][7]+"|especie="+cValToChar(aNfVCdd[Nx][6]))
 						cString += '<NFRef>'
 						cString += refnfesig(cTpNota,aNfVCdd[Nx][7],aNfVCdd[Nx][6],IIf(Len(aNfVCdd[Nx]) > 13 .And. !Empty(aNfVCdd[Nx][14]),aNfVCdd[Nx][14],cCFOP))
 						cString += '</NFRef>'
@@ -8598,8 +8592,6 @@ Static Function NfeItem(aProd		, aICMS			, aICMSST	, aIPI			, aPIS	   		, aPISST
 	Local cDocItemId	:= ''
 	Local oItensReforma := JsonObject():new()
 	Local cTpOpeGov		:= ''
-	Local nStart		:= 0	//Paliativo TOTVS gDevTrib
-	Local nEnd			:= 0	//Paliativo TOTVS gDevTrib
 
 	DEFAULT aICMS    		:= {}
 	DEFAULT aICMSST  		:= {}
@@ -10210,26 +10202,6 @@ If !Empty(cDocItemId) .AND. oXmlRefTri != NIL
 	//Imposto sobre bens e serviço e/ou contributos sobre bens e serviços
 	setOtherInfo(@oItensReforma,"aNota",aNota)
 	cString += oXmlRefTri:GetXmlIbsCbs( cDocItemId /*cDocumentItemId*/, oNfTciIntg /*oNfTciIntg*/, nil/*oItensReforma*/, oItensReforma /*oItensRefNfe*/ ) // getXmlIBSCBS(cDocumentItemId, oNfTciIntg, oItensReforma, oItensRefNfe )
-
-	//>>> TODO-TOTVS-GDEVTRIB (início) - Paliativo aplicado em 03/08/2026 por Edison Barbieri <<<
-	//Bug da TOTVS: oXmlRefTri:GetXmlIbsCbs (classe totvs.protheus.backoffice.tss.engine.xml.taxinformation, fora deste fonte)
-	//gera indevidamente o bloco <gDevTrib> em notas onde ele nao deveria existir, causando a rejeição SEFAZ 1111
-	//"Nota Fiscal referenciada não é de Saída". CONFIRMADO EM PRODUÇÃO (03/08/2026) em dois cenários distintos: (1) notas de venda normais, e (2) notas de entrada de devolução auto-referenciada (cTipo='0', emitida pela própria Cantu). Nos dois casos a remoção do <gDevTrib> resolveu e autorizou a nota (protocolo obtido); a hipótese de que a tag <NFref> fosse a causa foi testada e DESCARTADA (removida sem efeito, depois revertida). Não é customização Cantu - abrir/acompanhar chamado TOTVS para a correção oficial da função.
-	//Mantém o <gDevTrib> apenas para devolução de SAÍDA (cTpNota=='4' .and. aNota[04]=='1'), cenário ainda não testado onde a comunidade TOTVS alertou que a tag pode ser exigida.
-	//QUANDO A TOTVS LIBERAR A CORREÇÃO OFICIAL: remover este bloco "If ... EndIf" e revalidar se GetXmlIbsCbs passa a gerar o <gDevTrib> corretamente sozinho.
-	If cTpNota <> '4' .or. aNota[04] == '0'
-		While At("<gDevTrib>", cString) > 0
-			nStart := At("<gDevTrib>", cString)
-			nEnd   := At("</gDevTrib>", cString)
-			If nEnd > nStart
-				nEnd += Len("</gDevTrib>")
-				cString := SubStr(cString, 1, nStart - 1) + SubStr(cString, nEnd)
-			Else
-				Exit
-			EndIf
-		EndDo
-	EndIf
-	//<<< TODO-TOTVS-GDEVTRIB (fim) >>>
 endif
 
 If lMvPisCofD  .And. aDest[9] == 'PR'  // Lei Est. PR 17.127/12 informar todos os impostos na Danfe
@@ -10496,7 +10468,6 @@ cString += '<infadprod>'+AllTrim(ConvType(aProd[25],500)+cMensDeson+cDedIcm+cCrg
 	endif
 
 	//Referência de documento por item para notas ajuste (5/6). Alinhado ao mesmo gate de data do DFeReferenciado, para nao ativar sozinho antes de testado.
-	LogDiagRef("DIAGREF|"+cDocItemId+"|item|cTpNota="+cTpNota+"|F_TIPO="+aNota[05]+"|TPCOMPL="+aNota[11]+"|cAmbiente="+cValToChar(cAmbiente)+"|Nt250024D="+cValToChar(Nt250024D(cAmbiente))+"|aProd60="+cValToChar(aProd[60])+"|aProd61="+cValToChar(aProd[61]))
 	if Nt250024D(cAmbiente) .and. aNota[05] == '6' .and. aNota[11] $ '3|4|7'
 		cString += GetTagRef(aNota, aProd[55])
 	endif
@@ -15001,36 +14972,6 @@ static function GetTagPAnt(aDocDebito)
 	
 return cString
 
-//-----------------------------------------------------------------------
-//>>> TODO-DIAGREF - Função auxiliar temporária de log em arquivo, criada em 03/08/2026 por Edison Barbieri, para diagnosticar rejeição SEFAZ 1111 em devoluções. Causa raiz já identificada e corrigida (ver TODO-TOTVS-GDEVTRIB); gravação em arquivo DESATIVADA em 03/08/2026 para não pesar a rotina de emissão (I/O de disco a cada nota). Grava, quando ativa, em <RootPath do appserver.ini>\logs\diagref_log.txt. Remover esta função e as chamadas LogDiagRef(...) junto com o paliativo TODO-TOTVS-GDEVTRIB, na compatibilização da release 2510. <<<
-Static Function LogDiagRef(cLinha)
-	Local cArqLog	:= ""
-	Local nHandle	:= 0
-
-	//Desativado em 03/08/2026 - descomentar o bloco abaixo se precisar diagnosticar de novo antes da correcao oficial da TOTVS.
-	/*
-	cArqLog := GetPvProfString( GetEnvServer(), "RootPath", "", GetAdv97() )
-
-	if !empty(cArqLog) .and. Right(cArqLog,1) $ "\/"
-		cArqLog += "logs\diagref_log.txt"
-	else
-		cArqLog += "\logs\diagref_log.txt"
-	endif
-
-	nHandle := FOpen(cArqLog, 2)
-	if nHandle == -1
-		nHandle := FCreate(cArqLog, 0)
-	else
-		FSeek(nHandle, 0, 2)
-	endif
-
-	if nHandle > 0
-		FWrite(nHandle, DtoS(Date())+" "+Time()+" "+cLinha+CHR(13)+CHR(10))
-		FClose(nHandle)
-	endif
-	*/
-Return
-//-----------------------------------------------------------------------
 
 //-----------------------------------------------------------------------
 /*/{Protheus.doc} GetTagRef
