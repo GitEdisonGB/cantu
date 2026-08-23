@@ -1,5 +1,6 @@
 #include "rwmake.ch"
 #include "TopConn.ch"
+#include "totvs.ch" //Incluido - Edison G. Barbieri - Dt.23/08/2026 - necessario para CLR_BLACK (FillRect)
 //#INCLUDE "RCAOMS.CH"
 #define DMPAPER_A4 9
 
@@ -88,6 +89,7 @@ Static Function Rel004()
 	Public oFont13:= TFont():New( "Courier New",,14,,.T.,,,,,.F. )
 	Public oFont14:= TFont():New( "Courier New",,16,,.T.,,,,,.F. )
 	Public oFont15:= TFont():New( "Courier New",,18,,.T.,,,,,.F. )
+	Public oBrushLinha := TBrush():New(, CLR_BLACK) //Incluido - Edison G. Barbieri - Dt.23/08/2026 - usado no DrawH via FillRect (Line() parou de desenhar apos release 2510)
 
 	Public oPrn
 	Public nPag := 1
@@ -566,10 +568,11 @@ Static Function PrintS(pfRow,pfCol,pfText,pfFont)
 Return
 
 Static Function DrawH(dhRow,dhCol,dhWidth,dhPen)
-	While dhPen >= 1
-		oPrn:Line (nRD+(nRH*(dhRow-1))+(dhPen-1) + 2,nCD+(nCW*(dhCol-1)),nRD+(nRH*(dhRow-1))+(dhPen-1),nCD+(nCW*(dhWidth-1)) )
-		dhPen:=dhPen-1
-	EndDo
+	Local nTopo   := nRD+(nRH*(dhRow-1))
+	Local nBase   := nTopo + dhPen + 1
+
+	//Alterado - Edison G. Barbieri - Dt.23/08/2026 - troca de oPrn:Line() por oPrn:FillRect() (Line() parou de desenhar linhas apos release 2510)
+	oPrn:FillRect( { nTopo, nCD+(nCW*(dhCol-1)), nBase, nCD+(nCW*(dhWidth-1)) }, oBrushLinha )
 Return
 
 Static Function DrawV(dvRow,dvCol,dvHeight,dvPen)

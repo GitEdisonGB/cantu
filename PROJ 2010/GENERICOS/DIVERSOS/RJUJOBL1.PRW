@@ -193,11 +193,8 @@ User Function RJUJOBL1(aParam)
 					//Verifica se ja existe titulo na SE1 antes de desistir - Edison Barbieri - Dt.22/08/2026
 					If fSE1Existe(SL1->L1_FILIAL, SL1->L1_DOC, SL1->L1_SERIE, SL1->L1_CLIENTE, SL1->L1_LOJA)
 						If RecLock("SL1",.F.)
-							If cRpoDB == "DBF"
-								SL1->L1_SITUA	:= "00"
-							Else
-								SL1->L1_SITUA	:= "RX"
-							EndIf
+							//Titulo ja existe na SE1, entao esta tudo certo (nao precisa reimportar) - Edison Barbieri - Dt.22/08/2026
+							SL1->L1_SITUA	:= "OK"
 							CONOUT("RJUJOBL1: Titulo encontrado na SE1, corrigindo novamente! " + SL1->L1_DOC )
 							SL1->(MsUnLock())
 						EndIf
