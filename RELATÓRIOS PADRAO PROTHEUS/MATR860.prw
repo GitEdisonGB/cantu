@@ -19,16 +19,17 @@
 ßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßßß           
 */
 User Function MATR860()
-Local cExpData    := ""
 Local lRetMsg     := .T.
 Local oReport
 
 Private cQryOP
 
-If GetRpoRelease() >= "12.1.2410" .And. FindFunction("PCPExpSV")
-	cExpData := "20260331"
-	lRetMsg  := PCPExpSV(cExpData,"MATR860", "PCPR860")
-EndIf
+//Alterado: bloqueio de descontinuacao do padrao TOTVS (PCPExpSV, redireciona pro SmartView PCPR860) neutralizado - Edison Barbieri - Dt.24/08/2026
+//Objetivo desta customizacao e manter o relatorio classico funcionando; nao aplicar o redirecionamento da TOTVS pro PCPR860
+//If GetRpoRelease() >= "12.1.2410" .And. FindFunction("PCPExpSV")
+//	cExpData := "20260331"
+//	lRetMsg  := PCPExpSV(cExpData,"MATR860", "PCPR860")
+//EndIf
 
 If lRetMsg 
 	//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
