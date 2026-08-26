@@ -21,6 +21,7 @@ User Function FA420NAR()
 
 Local cTeste    := PARAMIXB 
 Local aArea		:= GetArea()    
+Local lBlind	:= IsBlind() //Se .T., esta rodando via Schedule/Job sem usuario interativo - Edison G. Barbieri - Dt.25/08/2026
 
 Public cArqAux	:= "" //Edison para que esse caminho seja validado após a geração do arquivo.   
 Public cArqTemp	:= "" //Edison para que esse arquivo seja validado após a geração do arquivo.
@@ -37,23 +38,29 @@ U_USORWMAKE(ProcName(),FunName())
 //³para montagem do caminho, nome e extensão do arquivo.               ³
 //ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄç
 
-if MsgYesNo("Deseja gerar o borderô para transmissão automática do arquivo?")
+if lBlind .Or. MsgYesNo("Deseja gerar o borderô para transmissão automática do arquivo?")
 	cTeste := U_GETARQFIN(MV_PAR05, MV_PAR06, MV_PAR07, MV_PAR08)  
 	if Empty(cTeste)
 		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 		//³Se na montagem da nomenclatura o retorno veio vazio, gera pelo processo normal³
 		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-		MsgAlert("Não há nomenclatura padrão cadastrada para o Banco/Agencia/Conta.")
+		if !lBlind
+			MsgAlert("Não há nomenclatura padrão cadastrada para o Banco/Agencia/Conta.")
+		Else
+			ConOut("FA420NAR - Nao ha nomenclatura padrao cadastrada para o Banco/Agencia/Conta.")
+		EndIf
 		cTeste := PARAMIXB
 	Else
-EndIf
-
-//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
-//³Chamada da função para gravar log na tabela Z49³
-//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
-U_GravaZ49(cTeste,{MV_PAR05, MV_PAR06, MV_PAR07, MV_PAR08},"NEXXERA")
-MsgInfo("Arquivo salvo em "+ AllTrim(cTeste) +".")
-	
+		//ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+		//³Chamada da função para gravar log na tabela Z49³
+		//ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+		U_GravaZ49(cTeste,{MV_PAR05, MV_PAR06, MV_PAR07, MV_PAR08},"NEXXERA")
+		if !lBlind
+			MsgInfo("Arquivo salvo em "+ AllTrim(cTeste) +".")
+		Else
+			ConOut("FA420NAR - Arquivo salvo em "+ AllTrim(cTeste) +".")
+		EndIf
+	EndIf
 EndIf
 
 RestArea(aArea)

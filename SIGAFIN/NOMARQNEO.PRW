@@ -515,13 +515,13 @@ User Function GETARQFIN(cBanco, cAgencia, cConta, cSubCta)
 
 	DbSelectArea("SEE")
 	SEE->(DbSetOrder(1))
-	If SEE->(DbSeek(xFilial("SEE") + cBanco + cAgencia + cConta + cSubCta))
-		if !Empty(SEE->EE_X_NOM)
-			cNomenc := SEE->EE_X_NOM
-		Else
-			Return cArquivo
-		EndIf
+	If !SEE->(DbSeek(xFilial("SEE") + cBanco + cAgencia + cConta + cSubCta)) .Or. Empty(SEE->EE_X_NOM)
+		//Alterado para retornar vazio (com RestArea) quando nao ha cadastro de nomenclatura pro Banco/Agencia/Conta/SubConta,
+		//evitando montar caminho invalido com EE_EXTEN de um registro nao posicionado - Edison G. Barbieri - Dt.25/08/2026
+		RestArea(aArea)
+		Return cArquivo
 	EndIf
+	cNomenc := SEE->EE_X_NOM
 
 //旼컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴컴커
 //쿞e existir nomenclatura, inicia interpreta豫o.�

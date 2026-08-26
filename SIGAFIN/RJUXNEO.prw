@@ -149,7 +149,11 @@ User Function RJUXNEO()
 
 				cArquivo := Lower(U_GETARQFIN(SEETMP->EE_CODIGO, SEETMP->EE_AGENCIA, SEETMP->EE_CONTA, SEETMP->EE_SUBCTA))
 
-				aFiles := Directory(AllTrim(cArquivo))
+				aFiles := {}
+				//Alterado para nao chamar Directory() quando GETARQFIN nao encontra nomenclatura cadastrada (retorno vazio) - Edison G. Barbieri - Dt.25/08/2026
+				if !Empty(cArquivo)
+					aFiles := Directory(AllTrim(cArquivo))
+				EndIf
 
 				if !Empty(aFiles)
 
@@ -162,7 +166,7 @@ User Function RJUXNEO()
 					If SEETMP->EE_SUBCTA == "002"
 						cArqTmp := "\cnabs\receber\inbox\"
 					Else
-						cArqTmp := "\cnabs\pagar\inbox\
+						cArqTmp := "\cnabs\pagar\inbox\"
 					EndIf
 
 					AEVAL(aFiles, { |x| U_ENVARQSRV(.T., aBco, Alltrim(cArqTmp)+ AllTrim(x[01]))})
