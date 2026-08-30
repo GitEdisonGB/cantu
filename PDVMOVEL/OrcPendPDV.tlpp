@@ -1,0 +1,184 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+Namespace cantu.pdvmovel.api
+
+/*/{Protheus.doc} OrcPendPDV
+Endpoint REST (GET) que lista orcamentos pendentes (nao faturados) do
+vendedor autenticado, pra retomar um orcamento em vez de criar do zero.
+Filtro adaptado da query real do CANTU.js (PE_ANT_buscaNrOrcamento, a
+mesma integracao Easy Mobile atual usa pra "Buscar orcamentos
+pendentes"): nao faturado (L1_DOC=' '), sem frete vinculado
+(L1_NUMFRT=' '), prazo de validade (L1_DTLIM) ainda nao vencido.
+Filtra tambem por vendedor (L1_VEND) - o CANTU.js original so filtra
+por filial, sem vendedor; aqui assumido "meus orcamentos pendentes"
+(faz mais sentido pro fluxo do app) - CONFIRMAR se e' o comportamento
+esperado quando testar ao vivo.
+NAO implementa ainda a "finalizacao" de um orcamento retomado (converter
+pra NFC-e) - so lista pra consulta/visualizacao por enquanto. Ver
+C:\spool\decisoes.md secao 6.1.
+@type Function
+@author Edison G. Barbieri
+@since 22/08/2026
+/*/
+
+//-------------------------------------------------------------------
+// GET /api/pdvmovel/v1/orcamentos-pendentes
+// Header: X-Pdv-Token (obrigatorio)
+// Response: 200 OK {"orcamentos":[{numero,cliente,nome,valorLiquido,
+//   emissao,itens:[{produto,descricao,quantidade,valorUnitario,
+//   valorItem}]}]} / 401
+//-------------------------------------------------------------------
+@Get("/api/pdvmovel/v1/orcamentos-pendentes")
+User Function OrcPendPDV() as Logical
+	Local jSessao := Nil as Json
+	Local jResp   := JsonObject():New() as Json
+
+	jSessao := BearPDV()
+	If jSessao == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
+	EndIf
+
+	jResp["orcamentos"] := BuscaOrcPendPDV(jSessao["filial"], jSessao["vendedor"])
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jResp:toJson())
+
+//-------------------------------------------------------------------
+// Busca orcamentos (SL1) nao faturados do vendedor na filial, com os
+// itens (SL2) e dados do cliente (SA1). Retorna array de Json, um por
+// orcamento, com "itens" aninhado.
+//-------------------------------------------------------------------
+Static Function BuscaOrcPendPDV(cFilVend as Character, cVend as Character) as Array
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local aRet       := {} as Array
+	Local jOrc       := Nil as Json
+	Local jItem      := Nil as Json
+	Local aItensOrc  := {} as Array
+	Local cNumAtual  := "" as Character
+	Local cVendPad   := PadR(cVend, TamSX3("A3_COD")[1]) as Character
+
+	cQuery := "SELECT SL1.L1_NUM, SL1.L1_MENNOTA, SL1.L1_VLRLIQ, SL1.L1_EMISSAO, "
+	cQuery += "SL1.L1_CLIENTE, SL1.L1_LOJA, RTRIM(SA1.A1_NOME) A1_NOME, SA1.A1_CGC, "
+	cQuery += "SL2.L2_PRODUTO, RTRIM(SL2.L2_DESCRI) L2_DESCRI, SL2.L2_QUANT, SL2.L2_VRUNIT, SL2.L2_VLRITEM "
+	cQuery += "FROM " + RetSqlName("SL1") + " SL1 "
+	cQuery += "JOIN " + RetSqlName("SL2") + " SL2 ON SL2.L2_FILIAL = SL1.L1_FILIAL AND SL2.L2_NUM = SL1.L1_NUM AND SL2.D_E_L_E_T_ = ' ' "
+	cQuery += "JOIN " + RetSqlName("SA1") + " SA1 ON SA1.A1_COD = SL1.L1_CLIENTE AND SA1.A1_LOJA = SL1.L1_LOJA AND SA1.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE SL1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND SL1.L1_FILIAL = ? "
+	cQuery += "AND SL1.L1_VEND = ? "
+	cQuery += "AND SL1.L1_DOC = ' ' "
+	cQuery += "AND SL1.L1_NUMFRT = ' ' "
+	cQuery += "AND SL1.L1_DTLIM >= ? "
+	cQuery += "ORDER BY SL1.L1_NUM DESC, SL2.L2_ITEM"
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cFilVend)
+	oStatement:SetString(2, cVendPad)
+	oStatement:SetDate(3, Date())
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	Do While !(cAlias)->(Eof())
+		If AllTrim((cAlias)->L1_NUM) <> cNumAtual
+			// Fecha o orcamento anterior (se houver) gravando os itens
+			// acumulados - nunca muta um array depois de ja estar dentro
+			// do JsonObject, monta tudo antes e atribui uma vez so.
+			If jOrc <> Nil
+				jOrc["itens"] := aItensOrc
+			EndIf
+
+			cNumAtual := AllTrim((cAlias)->L1_NUM)
+			aItensOrc := {}
+			jOrc := JsonObject():New()
+			jOrc["numero"]       := cNumAtual
+			jOrc["cliente"]      := AllTrim((cAlias)->L1_CLIENTE)
+			jOrc["loja"]         := AllTrim((cAlias)->L1_LOJA)
+			jOrc["nomeCliente"]  := AllTrim((cAlias)->A1_NOME)
+			jOrc["cgcCliente"]   := AllTrim((cAlias)->A1_CGC)
+			jOrc["valorLiquido"] := (cAlias)->L1_VLRLIQ
+			jOrc["observacoes"]  := AllTrim((cAlias)->L1_MENNOTA)
+			aAdd(aRet, jOrc)
+		EndIf
+
+		jItem := JsonObject():New()
+		jItem["produto"]       := AllTrim((cAlias)->L2_PRODUTO)
+		jItem["descricao"]     := AllTrim((cAlias)->L2_DESCRI)
+		jItem["quantidade"]    := (cAlias)->L2_QUANT
+		jItem["valorUnitario"] := (cAlias)->L2_VRUNIT
+		jItem["valorItem"]     := (cAlias)->L2_VLRITEM
+		aAdd(aItensOrc, jItem)
+
+		(cAlias)->(DBSkip())
+	EndDo
+
+	// Fecha o ultimo orcamento do loop
+	If jOrc <> Nil
+		jOrc["itens"] := aItensOrc
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return aRet
+
+//-------------------------------------------------------------------
+// Valida o token do header X-Pdv-Token contra a Z25 (hash SHA-256).
+// Duplicada por arquivo - Static Function e' privada por arquivo em
+// AdvPL/TLPP (nao existe import entre .tlpp para funcao static).
+//-------------------------------------------------------------------
+Static Function BearPDV() as Json
+	Local jHeader    := oRest:getHeaderRequest() as Json
+	Local cToken     := "" as Character
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	If jHeader <> Nil .And. jHeader["X-Pdv-Token"] <> Nil
+		cToken := AllTrim(cValToChar(jHeader["X-Pdv-Token"]))
+	EndIf
+
+	If Empty(cToken)
+		Return Nil
+	EndIf
+
+	cQuery := "SELECT Z25.Z25_VEND VEND, RTRIM(A3.A3_NOME) A3NOME, Z25.Z25_FILVEN FILVEN "
+	cQuery += "FROM " + RetSqlName("Z25") + " Z25 "
+	cQuery += "JOIN " + RetSqlName("SA3") + " A3 ON A3.A3_COD = Z25.Z25_VEND AND A3.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE Z25.D_E_L_E_T_ = ' ' "
+	cQuery += "AND Z25.Z25_TOKEN = ? "
+	cQuery += "AND Z25.Z25_ATIVO = '1' "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, SHA256(cToken))
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["vendedor"] := AllTrim((cAlias)->VEND)
+		jRet["nome"]     := AllTrim((cAlias)->A3NOME)
+		jRet["filial"]   := AllTrim((cAlias)->FILVEN)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Monta resposta de erro no padrao TTALK. Compartilhada por todos os
+// endpoints REST do PDV Movel.
+//-------------------------------------------------------------------
+Static Function ErroPDV(cCode as Character, cMessage as Character) as Character
+	Local jError := JsonObject():New() as Json
+
+	jError["code"]            := cCode
+	jError["message"]         := cMessage
+	jError["detailedMessage"] := cMessage
+
+Return jError:toJson()

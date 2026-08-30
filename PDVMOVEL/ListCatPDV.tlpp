@@ -1,0 +1,197 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+Namespace cantu.pdvmovel.api
+
+/*/{Protheus.doc} ListCatPDV
+Endpoint REST (GET) de catalogo de produtos para o app PDV Movel
+(substituto do Easy Mobile). Retorna sempre produtos da tabela de
+preco 777 ("2- TABELA SMARTPOS"), filtrados pela filial do vendedor
+autenticado (nunca informada pelo cliente - vem do token validado
+contra a Z25, ver AuthPDV.tlpp). Suporta sincronizacao incremental
+via parametro "desde": sem esse parametro, devolve a carga completa
+(so produtos ativos); com ele, devolve so o que mudou desde aquele
+momento (produto novo, preco alterado ou desativado), usando
+DA1_DTUMOV/DA1_HRUMOV.
+Ver C:\spool\decisoes.md secao 3.1 (sincronizacao), 3.2 (tabela Z25)
+e secao 4 (contrato REST, regra da tabela 777).
+@type Function
+@author Edison G. Barbieri
+@since 20/08/2026
+/*/
+
+//-------------------------------------------------------------------
+// GET /api/pdvmovel/v1/catalogo
+// Header: X-Pdv-Token: <token> (obrigatorio)
+// Query Params:
+//   desde (opcional) - formato AAAAMMDDHHMMSS (14 digitos).
+//                       Ausente = carga completa (so ativos).
+// Response: 200 OK / 400 Bad Request / 401 Unauthorized / 500
+//-------------------------------------------------------------------
+@Get("/api/pdvmovel/v1/catalogo")
+User Function ListCatPDV() as Logical
+	Local jQuery  := oRest:getQueryRequest() as Json
+	Local cDesde  := "" as Character
+	Local jSessao := Nil as Json
+	Local aItens  := {} as Array
+	Local jResp   := JsonObject():New() as Json
+
+	jSessao := BearPDV()
+	If jSessao == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
+	EndIf
+
+	If jQuery <> Nil .And. jQuery["desde"] <> Nil
+		cDesde := AllTrim(cValToChar(jQuery["desde"]))
+	EndIf
+
+	If !Empty(cDesde) .And. Len(cDesde) <> 14
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Parametro 'desde' deve estar no formato AAAAMMDDHHMMSS"))
+	EndIf
+
+	Try
+		aItens := QryCatPDV(jSessao["filial"], cDesde)
+	Catch oError
+		FWLogMsg("ERROR", , "REST", "ListCatPDV", , "01", oError:Description, 0, 0, {})
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, ErroPDV("500", "Erro interno ao consultar catalogo"))
+	EndTry
+
+	jResp["syncedAt"] := SyncStPDV()
+	jResp["items"]    := aItens
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jResp:toJson())
+
+//-------------------------------------------------------------------
+// Consulta os itens da tabela de preco 777 pra filial informada.
+// Sem "cDesde": carga completa, so produtos ativos.
+// Com "cDesde": delta por DA1_DTUMOV/DA1_HRUMOV, incluindo produtos
+// que foram desativados nesse intervalo (o app decide remover do
+// cache local quando "active" vier false).
+//-------------------------------------------------------------------
+Static Function QryCatPDV(cFilAux as Character, cDesde as Character) as Array
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local aRet       := {} as Array
+	Local dDesde     as Date
+	Local cHrDesde   := "" as Character
+
+	cQuery := "SELECT DA1.DA1_CODPRO CODPRO, RTRIM(B1.B1_DESC) B1_DESC, DA1.DA1_PRCVEN PRCVEN, DA1.DA1_ATIVO ATIVO "
+	cQuery += "FROM " + RetSqlName("DA1") + " DA1 "
+	cQuery += "JOIN " + RetSqlName("SB1") + " B1 ON B1.B1_COD = DA1.DA1_CODPRO AND B1.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE DA1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND DA1.DA1_CODTAB = '777' "
+	cQuery += "AND DA1.DA1_FILIAL = ? "
+
+	If Empty(cDesde)
+		cQuery += "AND DA1.DA1_ATIVO = '1' "
+	Else
+		dDesde   := STOD(SubStr(cDesde, 1, 8))
+		cHrDesde := SubStr(cDesde, 9, 2) + ":" + SubStr(cDesde, 11, 2) + ":" + SubStr(cDesde, 13, 2)
+		cQuery += "AND (DA1.DA1_DTUMOV > ? OR (DA1.DA1_DTUMOV = ? AND DA1.DA1_HRUMOV > ?)) "
+	EndIf
+
+	cQuery += "ORDER BY DA1.DA1_DTUMOV, DA1.DA1_HRUMOV"
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cFilAux)
+	If !Empty(cDesde)
+		oStatement:SetDate(2, dDesde)
+		oStatement:SetDate(3, dDesde)
+		oStatement:SetString(4, cHrDesde)
+	EndIf
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	Do While !(cAlias)->(Eof())
+		aAdd(aRet, JsonObject():New())
+		aRet[Len(aRet)]["code"]        := AllTrim((cAlias)->CODPRO)
+		aRet[Len(aRet)]["description"] := AllTrim((cAlias)->B1_DESC)
+		aRet[Len(aRet)]["price"]       := (cAlias)->PRCVEN
+		aRet[Len(aRet)]["active"]      := AllTrim((cAlias)->ATIVO) == "1"
+		(cAlias)->(DBSkip())
+	EndDo
+
+	(cAlias)->(DBCloseArea())
+
+Return aRet
+
+//-------------------------------------------------------------------
+// Timestamp do servidor no formato AAAAMMDDHHMMSS - usado como novo
+// marcador de sincronizacao pelo app. Sempre horario do servidor
+// (nunca do device), pra nao sofrer com relogio dessincronizado.
+//-------------------------------------------------------------------
+Static Function SyncStPDV() as Character
+	Local cData := DToS(Date()) as Character
+	Local cHora := StrTran(Time(), ":", "") as Character
+
+Return cData + cHora
+
+//-------------------------------------------------------------------
+// Valida o token do header X-Pdv-Token contra a Z25 (hash SHA-256,
+// nunca o token em texto puro - ver AuthPDV.tlpp). Header dedicado
+// (nao Authorization) porque o Authorization e' reservado pro Basic
+// Auth do usuario tecnico que satisfaz a porta HTTP do REST - ver
+// decisoes.md (tema Autenticacao REST). Retorna Json com
+// vendedor/nome/filial se valido, Nil caso contrario. Todo endpoint
+// protegido do PDV Movel precisa dessa checagem - duplicada por
+// arquivo porque Static Function e' privada por arquivo em AdvPL/TLPP
+// (nao existe import entre .tlpp para funcao static).
+//-------------------------------------------------------------------
+Static Function BearPDV() as Json
+	Local jHeader    := oRest:getHeaderRequest() as Json
+	Local cToken     := "" as Character
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	If jHeader <> Nil .And. jHeader["X-Pdv-Token"] <> Nil
+		cToken := AllTrim(cValToChar(jHeader["X-Pdv-Token"]))
+	EndIf
+
+	If Empty(cToken)
+		Return Nil
+	EndIf
+
+	cQuery := "SELECT Z25.Z25_VEND VEND, RTRIM(A3.A3_NOME) A3NOME, Z25.Z25_FILVEN FILVEN "
+	cQuery += "FROM " + RetSqlName("Z25") + " Z25 "
+	cQuery += "JOIN " + RetSqlName("SA3") + " A3 ON A3.A3_COD = Z25.Z25_VEND AND A3.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE Z25.D_E_L_E_T_ = ' ' "
+	cQuery += "AND Z25.Z25_TOKEN = ? "
+	cQuery += "AND Z25.Z25_ATIVO = '1' "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, SHA256(cToken))
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["vendedor"] := AllTrim((cAlias)->VEND)
+		jRet["nome"]     := AllTrim((cAlias)->A3NOME)
+		jRet["filial"]   := AllTrim((cAlias)->FILVEN)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Monta resposta de erro no padrao TTALK. Compartilhada por todos
+// os endpoints REST do PDV Movel.
+//-------------------------------------------------------------------
+Static Function ErroPDV(cCode as Character, cMessage as Character) as Character
+	Local jError := JsonObject():New() as Json
+
+	jError["code"]            := cCode
+	jError["message"]         := cMessage
+	jError["detailedMessage"] := cMessage
+
+Return jError:toJson()

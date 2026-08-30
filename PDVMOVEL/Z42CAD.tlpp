@@ -1,0 +1,62 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+#include "fwmvcdef.ch"
+
+Namespace cantu.pdvmovel.mvc.z42cad
+
+
+/*/{Protheus.doc} Z42CAD
+Tela de visualizacao dos registros de idempotencia do app PDV Movel
+(tabela Z42). So consulta - nao tem Incluir/Alterar/Excluir manual,
+porque os registros sao gerados automaticamente pelo endpoint REST
+/venda (idempotencyKey enviada pelo app), nao por um usuario. Mesmo
+padrao de tela-so-visualizacao do Z25CAD.tlpp.
+@type Function
+@author Edison G. Barbieri
+@since 22/08/2026
+/*/
+
+User Function Z42CAD()
+	Local oBrowse as Object
+
+	oBrowse := FWMBrowse():New()
+	oBrowse:SetAlias('Z42')
+
+	oBrowse:AddLegend( "Z42_STATUS=='C'", "GREEN" , "CONCLUIDO" )
+	oBrowse:AddLegend( "Z42_STATUS=='P'", "YELLOW", "PROCESSANDO" )
+	oBrowse:AddLegend( "Z42_STATUS=='E'", "RED"   , "ERRO" )
+
+	oBrowse:SetDescription('Idempotencia PDV Movel')
+	oBrowse:Activate()
+Return
+
+User Function MenuDef()
+	Local aRotina := {} as Array
+
+	aAdd( aRotina, { 'Visualizar' , 'VIEWDEF.cantu.pdvmovel.mvc.z42cad.Z42CAD', 0, 2, 0, NIL } )
+
+Return aRotina
+
+User Function ModelDef()
+	Local oModel   as Object
+	Local oStrZ42  := FWFormStruct(1,"Z42") as Object
+
+	oModel := MPFormModel():New("MD_Z42")
+	oModel:addFields('MASTERZ42',,oStrZ42)
+
+	oModel:SetPrimaryKey({'Z42_FILIAL','Z42_COD'})
+
+Return oModel
+
+User Function ViewDef()
+	Local oModel  := FWLoadModel("cantu.pdvmovel.mvc.z42cad.Z42CAD") as Object
+	Local oView   as Object
+	Local oStrZ42 := FWFormStruct(2, 'Z42') as Object
+
+	oView := FWFormView():New()
+	oView:SetModel(oModel)
+	oView:AddField('FORM_Z42', oStrZ42, 'MASTERZ42')
+	oView:CreateHorizontalBox('BOX_FORM_Z42', 100)
+	oView:SetOwnerView('FORM_Z42', 'BOX_FORM_Z42')
+
+Return oView

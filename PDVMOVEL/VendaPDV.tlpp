@@ -1,0 +1,779 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+Namespace cantu.pdvmovel.api
+
+/*/{Protheus.doc} VendaPDV
+Endpoint REST (POST) que grava uma venda, aceitando 3 tipos (campo
+"tipo" no body, espelhando o modal real do Easy Mobile no CANTU.js -
+"NFC-e, NF-e ou apenas Orcamento" - simplificado, sem NF-e por
+enquanto, mais uma 3a opcao propria de Pedido de Venda):
+- "ORCAMENTO": grava orcamento SIGALOJA via ExecAuto LOJA701, so o
+  rascunho (sem cCallRot) - mesmo padrao exato do precedente real
+  PROJ 2010\SIGALOJA\ROTINAS\RJLOJP02.PRW (producao).
+- "NFCE": idem, mas finaliza e emite na hora (cCallRot="VA" = Venda
+  Assistida) - gera Cupom/NFC-e/SAT dentro do proprio ExecAuto, segundo
+  o comentario real de EASYMOBILE\MyLOJA701.prw (mesma integracao que
+  o Easy Mobile atual usa).
+- "PEDIDO": NAO gera orcamento SIGALOJA - grava Pedido de Venda
+  (SC5/SC6) direto via ExecAuto MATA410, sincrono. Decisao do usuario
+  22/08/2026: "Tipo de Entrega" (deixado de lado antes) na verdade e'
+  essa 3a opcao pros casos de entrega, nao um campo por item. Estrutura
+  de campos baseada no precedente real e ATIVO em producao GPDOEASY()
+  em CANTUEDISON\pedido_venda_orcamento_easymobile.prw (job que ja
+  converte orcamento Easy Mobile em pedido hoje) - aqui SINCRONO em vez
+  de via job, pra devolver o numero do pedido na hora pro app.
+NENHUM tipo CONFIRMADO AO VIVO AINDA (REST parado no dia da
+implementacao) - testar todos os caminhos assim que possivel.
+Cliente e' OBRIGATORIO (decisao do usuario 22/08/2026 - sem venda
+anonima/consumidor generico no app). Filial de gravacao vem da Z25 do
+vendedor autenticado (Z25_FILVEN, devolvida por /auth) via cFilAnt -
+cEmpAnt e' bloqueado desde o pacote 12.1.2510, mas cFilAnt continua
+suportado (mesma empresa, varias filiais).
+Ver C:\spool\decisoes.md secao 4 (contrato REST) e precedentes reais em
+PROJ 2010\SIGALOJA\ROTINAS\RJLOJP02.PRW, EASYMOBILE\MyLOJA701.prw e
+CANTUEDISON\pedido_venda_orcamento_easymobile.prw.
+@type Function
+@author Edison G. Barbieri
+@since 22/08/2026
+/*/
+
+//-------------------------------------------------------------------
+// POST /api/pdvmovel/v1/venda
+// Header: X-Pdv-Token (obrigatorio)
+// Body: {"cliente":"<CNPJ ou CPF>","tipo":"ORCAMENTO|NFCE|PEDIDO","itens":[{"codigo":"...","quantidade":N}]}
+// Response: 200 OK / 400 Bad Request / 401 Unauthorized / 500
+//-------------------------------------------------------------------
+@Post("/api/pdvmovel/v1/venda")
+User Function VendaPDV() as Logical
+	Local cBody     := oRest:getBodyRequest() as Character
+	Local jBody     := JsonObject():New() as Json
+	Local jSessao   := Nil as Json
+	Local cCliente  := "" as Character
+	Local cTipo     := "" as Character
+	Local cObs      := "" as Character
+	Local aItensReq := {} as Array
+	Local jCli      := Nil as Json
+	Local jResp     := JsonObject():New() as Json
+	Local cNumOrc   := "" as Character
+
+	jSessao := BearPDV()
+	If jSessao == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
+	EndIf
+
+	If jBody:fromJson(cBody) <> Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Corpo JSON invalido"))
+	EndIf
+
+	cCliente  := AllTrim(cValToChar(jBody:GetJsonText("cliente")))
+	cTipo     := Upper(AllTrim(cValToChar(jBody:GetJsonText("tipo"))))
+	// "observacoes" e' campo OPCIONAL - GetJsonText() pra chave ausente retorna
+	// a string literal "null" (4 chars), nao Nil/"" (mesmo bug real achado e
+	// corrigido em ClientePDV.tlpp/GravaCliPDV 30/08/2026 - ver comentario la).
+	// Sem esse tratamento, o campo LQ_MENNOTA/C5_OBSPED gravaria o texto "null"
+	// literal sempre que o app nao mandar observacoes.
+	cObs      := AllTrim(cValToChar(jBody:GetJsonText("observacoes")))
+	If Upper(cObs) == "NULL"
+		cObs := ""
+	EndIf
+	aItensReq := jBody["itens"]
+
+	If Empty(cCliente)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Campo 'cliente' (CNPJ/CPF) e obrigatorio"))
+	EndIf
+
+	If cTipo <> "ORCAMENTO" .And. cTipo <> "NFCE" .And. cTipo <> "PEDIDO"
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Campo 'tipo' deve ser 'ORCAMENTO', 'NFCE' ou 'PEDIDO'"))
+	EndIf
+
+	If !ValidaDocPDV(cCliente)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "CPF/CNPJ do cliente invalido"))
+	EndIf
+
+	If aItensReq == Nil .Or. Len(aItensReq) == 0
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Pedido sem itens"))
+	EndIf
+
+	jCli := BuscaCliPDV(cCliente)
+	If jCli == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Cliente nao cadastrado - cadastre antes de vender"))
+	EndIf
+
+	Try
+		If cTipo == "PEDIDO"
+			cNumOrc := GravaPedidoPDV(jSessao["vendedor"], jSessao["filial"], jCli, aItensReq, cObs)
+		Else
+			cNumOrc := GravaOrcPDV(jSessao["vendedor"], jSessao["filial"], jCli, aItensReq, cTipo, cObs)
+		EndIf
+	Catch oError
+		FWLogMsg("ERROR", , "REST", "VendaPDV", , "01", oError:Description, 0, 0, {})
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, ErroPDV("500", "Erro interno ao gravar venda"))
+	EndTry
+
+	If Empty(cNumOrc)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, ErroPDV("500", "Falha ao gravar venda no Protheus"))
+	EndIf
+
+	jResp["numeroOrcamento"] := cNumOrc
+	jResp["tipo"]            := cTipo
+	jResp["formaPagamento"]  := "DINHEIRO"
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jResp:toJson())
+
+//-------------------------------------------------------------------
+// GET /api/pdvmovel/v1/venda/:numero
+// Header: X-Pdv-Token (obrigatorio)
+// Response: 200 OK {"numero","situacao":"PENDENTE|AUTORIZADA","documento",
+//   "serie","chaveNFCe","dataAutorizacao"} / 400 / 401 / 404
+// Consulta o status fiscal (autorizacao SEFAZ) de uma venda gravada via
+// /venda tipo NFCE. SO LE dados JA PERSISTIDOS (SL1+SF2) - nao chama a
+// SEFAZ ao vivo (polling simples). Pesquisado no repo antes de
+// implementar (nao inventado):
+// - SL1.L1_DOC/L1_SERIE identificam a nota fiscal gerada - precedente
+//   real em SIGALOJA\LJ7053.prw e outros.
+// - SF2 buscada por xFilial("SF2")+L1_DOC+L1_SERIE - mesmo padrao real
+//   de SIGALOJA\M_SaidaComproSigaLoja.prw.
+// - "Autorizada" = F2_CHVNFE preenchido E (F2_DAUTNFE OU F2_HAUTNFE)
+//   preenchido - mesma logica do relatorio oficial REAL
+//   CANTUEDISON\nf_nao_autorizadas.prw (que filtra exatamente o
+//   oposto, "nao autorizadas").
+// Existe U_MTCONSCH (CANTUEDISON\Valnfceautoriz.prw) pra consultar a
+// SEFAZ AO VIVO via webservice (cStat/xMotivo/protocolo), mas so cobre
+// SP/PR/SC/MT e exige certificado - fora de escopo desse endpoint de
+// polling simples; considerar como fallback futuro quando F2_CHVNFE
+// ainda estiver vazio.
+// So aplica pra vendas tipo NFCE - "ORCAMENTO" e "PEDIDO" nao geram
+// nota fiscal, respondem sempre situacao="PENDENTE".
+// NAO TESTADO AO VIVO ainda (depende de confirmar primeiro que o
+// cCallRot="VA" do /venda realmente gera a nota - ver comentario no
+// topo do arquivo).
+//-------------------------------------------------------------------
+@Get("/api/pdvmovel/v1/venda/:numero")
+User Function VendaStatusPDV() as Logical
+	Local jSessao := Nil as Json
+	Local jPath   := oRest:getPathParamsRequest() as Json
+	Local cNumero := "" as Character
+	Local jStatus := Nil as Json
+
+	jSessao := BearPDV()
+	If jSessao == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
+	EndIf
+
+	If jPath <> Nil .And. jPath["numero"] <> Nil
+		cNumero := AllTrim(cValToChar(jPath["numero"]))
+	EndIf
+
+	If Empty(cNumero)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Numero da venda e obrigatorio"))
+	EndIf
+
+	jStatus := BuscaStatusVendaPDV(cNumero, jSessao["filial"])
+	If jStatus == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(404, ErroPDV("404", "Venda nao encontrada"))
+	EndIf
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jStatus:toJson())
+
+//-------------------------------------------------------------------
+// Busca o status fiscal da venda: SL1 pelo numero (obtem L1_DOC/
+// L1_SERIE), depois SF2 pelo par documento+serie (obtem chave/data de
+// autorizacao). Ver comentario do endpoint acima pros precedentes
+// reais de cada passo. Retorna Nil se o numero nao existir na SL1
+// dessa filial.
+//-------------------------------------------------------------------
+Static Function BuscaStatusVendaPDV(cNumero as Character, cFilVend as Character) as Json
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+	Local cDoc       := "" as Character
+	Local cSerie     := "" as Character
+
+	cQuery := "SELECT L1_DOC, L1_SERIE FROM " + RetSqlName("SL1") + " SL1 "
+	cQuery += "WHERE SL1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND SL1.L1_FILIAL = ? "
+	cQuery += "AND SL1.L1_NUM = ? "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cFilVend)
+	oStatement:SetString(2, PadR(cNumero, TamSX3("L1_NUM")[1]))
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If (cAlias)->(Eof())
+		(cAlias)->(DBCloseArea())
+		Return Nil
+	EndIf
+
+	cDoc   := AllTrim((cAlias)->L1_DOC)
+	cSerie := AllTrim((cAlias)->L1_SERIE)
+
+	(cAlias)->(DBCloseArea())
+
+	jRet := JsonObject():New()
+	jRet["numero"]          := cNumero
+	jRet["situacao"]        := "PENDENTE"
+	jRet["documento"]       := cDoc
+	jRet["serie"]           := cSerie
+	jRet["chaveNFCe"]       := ""
+	jRet["dataAutorizacao"] := ""
+
+	// So busca SF2 se a SL1 ja tiver documento/serie gravados (venda
+	// tipo ORCAMENTO/PEDIDO nunca chega aqui - fica PENDENTE sempre).
+	If !Empty(cDoc) .And. !Empty(cSerie)
+		cAlias := GetNextAlias()
+
+		cQuery := "SELECT F2_CHVNFE, F2_DAUTNFE, F2_HAUTNFE FROM " + RetSqlName("SF2") + " SF2 "
+		cQuery += "WHERE SF2.D_E_L_E_T_ = ' ' "
+		cQuery += "AND SF2.F2_FILIAL = ? "
+		cQuery += "AND SF2.F2_DOC = ? "
+		cQuery += "AND SF2.F2_SERIE = ? "
+
+		oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+		oStatement:SetString(1, cFilVend)
+		oStatement:SetString(2, cDoc)
+		oStatement:SetString(3, cSerie)
+
+		cQuery := oStatement:GetFixQuery()
+		DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+		If !(cAlias)->(Eof())
+			If !Empty(AllTrim((cAlias)->F2_CHVNFE)) .And. (!Empty(AllTrim((cAlias)->F2_DAUTNFE)) .Or. !Empty(AllTrim((cAlias)->F2_HAUTNFE)))
+				jRet["situacao"]        := "AUTORIZADA"
+				jRet["chaveNFCe"]       := AllTrim((cAlias)->F2_CHVNFE)
+				jRet["dataAutorizacao"] := AllTrim((cAlias)->F2_DAUTNFE) + " " + AllTrim((cAlias)->F2_HAUTNFE)
+			EndIf
+		EndIf
+
+		(cAlias)->(DBCloseArea())
+	EndIf
+
+Return jRet
+
+
+//-------------------------------------------------------------------
+// Grava o orcamento/venda no SIGALOJA via ExecAuto LOJA701 - ver o
+// branch cTipo mais abaixo pra ORCAMENTO vs NFCE. Preco vem da tabela
+// 777 (LR_TABELA) por padrao; "precoUnitario" no item e' opcional e
+// sobrescreve (equivalente ao botao "Novo valor" do Easy Mobile,
+// CANTU.js). LR_FILRES vem da filial do vendedor (dinamico, decisao
+// do usuario 22/08/2026 - nao e' fixo tipo "04" como no CANTU.js,
+// cada filial reserva na propria). Troca a filial de gravacao via
+// cFilAnt (SUPORTADO mesmo apos o bloqueio do pacote 2510, que atinge
+// so cEmpAnt).
+//-------------------------------------------------------------------
+Static Function GravaOrcPDV(cVend as Character, cFilVend as Character, jCli as Json, aItensReq as Array, cTipo as Character, cObs as Character) as Character
+	Local cFilAntBkp := cFilAnt as Character
+	Local aCab       := {} as Array
+	Local aItens     := {} as Array
+	Local aForma     := {} as Array
+	Local aItemLin   := {} as Array
+	Local nI         := 0 as Numeric
+	Local cCodProd   := "" as Character
+	Local nQtdItem   := 0 as Numeric
+	Local nPrecoItem := 0 as Numeric
+	Local nPercDesc  := 0 as Numeric
+	Local nValDesc   := 0 as Numeric
+	Local nTotVenda  := 0 as Numeric
+	Local lImpNF     := .T. as Logical
+	Local nTamProd   := TamSX3("LR_PRODUTO")[1] as Numeric
+	Local nTamUM     := TamSX3("LR_UM")[1] as Numeric
+	Local nTamTabela := TamSX3("LR_TABELA")[1] as Numeric
+	Local cNumSeq    := "" as Character
+	Local cVendPad   := PadR(cVend, TamSX3("A3_COD")[1]) as Character
+	Local jProd      := Nil as Json
+
+	// Resolve produto+preco (tabela 777) de todos os itens ANTES de abrir
+	// a transacao - evita dar Return no meio de um Begin/End Transaction.
+	For nI := 1 To Len(aItensReq)
+		cCodProd := PadR(AllTrim(cValToChar(aItensReq[nI]["codigo"])), nTamProd)
+		nQtdItem := aItensReq[nI]["quantidade"]
+
+		jProd := BuscaProdPDV(cCodProd, cFilVend)
+		If jProd == Nil
+			Return ""
+		EndIf
+
+		// Preco vem da tabela 777 por padrao; "precoUnitario" no item e'
+		// opcional e sobrescreve (equivalente ao botao "Novo valor" do
+		// Easy Mobile - CANTU.js, vendedor pode ajustar manualmente).
+		If aItensReq[nI]["precoUnitario"] <> Nil
+			nPrecoItem := aItensReq[nI]["precoUnitario"]
+		Else
+			nPrecoItem := jProd["preco"]
+		EndIf
+
+		// Desconto por item opcional (% - equivalente ao campo "desconto %"
+		// do Easy Mobile/CANTU.js). LR_VLRITEM fica com o valor LIQUIDO
+		// (depois do desconto) - interpretacao adotada por analogia, sem
+		// precedente real combinando desconto+VLRITEM no mesmo ExecAuto -
+		// CONFIRMAR quando testar ao vivo.
+		nPercDesc := 0
+		If aItensReq[nI]["descontoPercentual"] <> Nil
+			nPercDesc := aItensReq[nI]["descontoPercentual"]
+		EndIf
+		nValDesc := (nPrecoItem * nQtdItem) * (nPercDesc / 100)
+		nTotVenda += (nPrecoItem * nQtdItem) - nValDesc
+
+		aItemLin := {}
+		aAdd(aItemLin, {"LR_PRODUTO", cCodProd, NIL})
+		aAdd(aItemLin, {"LR_QUANT"  , nQtdItem, NIL})
+		aAdd(aItemLin, {"LR_UM"     , PadR(jProd["um"], nTamUM), NIL})
+		aAdd(aItemLin, {"LR_VRUNIT" , nPrecoItem, NIL})
+		aAdd(aItemLin, {"LR_VLRITEM", (nPrecoItem * nQtdItem) - nValDesc, NIL})
+		aAdd(aItemLin, {"LR_DESC"   , nPercDesc, NIL})
+		aAdd(aItemLin, {"LR_VALDESC", nValDesc, NIL})
+		aAdd(aItemLin, {"LR_TABELA" , PadR("777", nTamTabela), NIL})
+		aAdd(aItemLin, {"LR_DESCPRO", 0, NIL})
+		aAdd(aItemLin, {"LR_VEND"   , cVendPad, NIL})
+		aAdd(aItemLin, {"LR_LOCAL"  , PadR("NACION", TamSX3("LR_LOCAL")[1]), NIL})
+		aAdd(aItemLin, {"LR_FILRES" , PadR(cFilVend, 2), NIL})
+		aAdd(aItens, aItemLin)
+	Next nI
+
+	cFilAnt := PadR(cFilVend, 2)
+
+	Begin Transaction
+
+		// Alterado - numero validado contra SL1 e SLQ - Edison G. Barbieri - Dt.30/08/2026
+		cNumSeq := U_GETNUMSX("SL1", "L1_NUM", xFilial("SL1"), {{"SL1", "L1_NUM"}, {"SLQ", "LQ_NUM"}}) // sic - mesmo padrao real de RJLOJP02.PRW (SIGALOJA), LQ_NUM compartilha sequencia com L1_NUM
+
+		aAdd(aCab, {"LQ_NUM"     , cNumSeq       , NIL})
+		aAdd(aCab, {"LQ_VEND"    , cVendPad      , NIL})
+		aAdd(aCab, {"LQ_COMIS"   , 0             , NIL})
+		aAdd(aCab, {"LQ_CLIENTE" , jCli["codigo"], NIL})
+		aAdd(aCab, {"LQ_LOJA"    , jCli["loja"]  , NIL})
+		aAdd(aCab, {"LQ_TIPOCLI" , jCli["tipo"]  , NIL})
+		aAdd(aCab, {"LQ_DESCONT" , 0             , NIL})
+		aAdd(aCab, {"LQ_DTLIM"   , Date()        , NIL})
+		aAdd(aCab, {"LQ_EMISSAO" , Date()        , NIL})
+		aAdd(aCab, {"LQ_CONDPG"  , "001"         , NIL})
+		aAdd(aCab, {"LQ_NUMMOV"  , "1 "          , NIL})
+		aAdd(aCab, {"LQ_MENNOTA" , cObs          , NIL})
+		// LQ_IMPNF/LQ_SITUA seguem o padrao real do CANTU.js
+		// (PE_GERORC_ANTES_GERORC) - .F. quando vira NFC-e na hora (nao
+		// gera "NF" tradicional separada), .T. no orcamento simples.
+		// LQ_SITUA='RX' e' fixo no CANTU.js independente do tipo.
+		If cTipo == "NFCE"
+			lImpNF := .F.
+		Else
+			lImpNF := .T.
+		EndIf
+		aAdd(aCab, {"LQ_IMPNF"   , lImpNF        , NIL})
+		aAdd(aCab, {"LQ_SITUA"   , "RX"          , NIL})
+
+		aAdd(aForma, {})
+		aAdd(aForma[Len(aForma)], {"L4_DATA"   , Date(), NIL})
+		aAdd(aForma[Len(aForma)], {"L4_VALOR"  , nTotVenda, NIL})
+		aAdd(aForma[Len(aForma)], {"L4_FORMA"  , "R$ ", NIL})
+		aAdd(aForma[Len(aForma)], {"L4_ADMINIS", " ", NIL})
+		aAdd(aForma[Len(aForma)], {"L4_NUMCART", " ", NIL})
+		aAdd(aForma[Len(aForma)], {"L4_FORMAID", " ", NIL})
+		aAdd(aForma[Len(aForma)], {"L4_MOEDA"  , 0, NIL})
+
+		lMsHelpAuto := .T.
+		lMsErroAuto := .F.
+
+		SetFunName("LOJA701")
+		// "NFCE" finaliza e emite na hora (cCallRot="VA" = Venda Assistida,
+		// confirmado no comentario real de EASYMOBILE/MyLOJA701.prw: gera
+		// Cupom/NFC-e/SAT). "ORCAMENTO" so grava o rascunho, sem cCallRot -
+		// mesmo padrao exato do precedente real RJLOJP02.PRW (producao).
+		If cTipo == "NFCE"
+			MSExecAuto({|a,b,c,d,e,f,g,h,i,j,k| Loja701(a,b,c,d,e,f,g,h,i,j,k)}, .F., 3, "", "", {}, aCab, aItens, aForma, Nil, Nil, "VA")
+		Else
+			MSExecAuto({|a,b,c,d,e,f,g,h| Loja701(a,b,c,d,e,f,g,h)}, .F., 3, "", "", {}, aCab, aItens, aForma)
+		EndIf
+
+		If lMsErroAuto
+			DisarmTransaction()
+			cNumSeq := ""
+		EndIf
+
+	End Transaction
+
+	// Alterado - confirma ou devolve o numero reservado no semaforo - Edison G. Barbieri - Dt.30/08/2026
+	If lMsErroAuto
+		RollBackSX8()
+	Else
+		ConfirmSX8()
+	EndIf
+
+	cFilAnt := cFilAntBkp
+
+Return cNumSeq
+
+//-------------------------------------------------------------------
+// Grava um PEDIDO DE VENDA (SC5/SC6) via ExecAuto MATA410 - opcao 3 do
+// fechamento (decisao do usuario 22/08/2026: "Tipo de Entrega" nao e'
+// um campo por item, e' uma 3a opcao na tela que gera Pedido de Venda
+// em vez de orcamento SIGALOJA, pros casos de entrega). SINCRONO -
+// devolve o numero do pedido na hora (nao usa o job PEDVEASY existente,
+// que e' assincrono e mistura com dados do Easy Mobile).
+// Estrutura de campos (aCab/aItens) e a regra C6_OPER ("03" se cliente
+// Consumidor Final / "01" senao) vem do precedente REAL e ATIVO em
+// producao GPDOEASY() em CANTUEDISON\pedido_venda_orcamento_easymobile.prw
+// (job que ja converte orcamento Easy Mobile em pedido hoje - mesmo
+// autor do usuario atual). Diferencas propositais desse precedente:
+// - C5_CONDPAG fixo "001" (a vista) em vez do A1_COND generico do
+//   cliente - aqui e' sempre dinheiro na hora (D11), o precedente
+//   original assume pedido a prazo.
+// - NAO seta C5_X_CLVL/C5_X_CC (classificacao de valor/centro de custo)
+//   - hardcoded no precedente original pro contexto Easy Mobile
+//   especificamente, sem confirmacao se aplica aqui. Mesma logica do
+//   "conjunto minimo" do cadastro de cliente (secao 6.2 decisoes.md) -
+//   se for obrigatorio o MATA410 vai acusar no primeiro teste ao vivo.
+// - Nao usa C6_TES explicito (o precedente tambem nao usa, mesmo
+//   selecionando do SL2 original - deixa o MATA410 resolver via
+//   C6_OPER).
+// NAO TESTADO AO VIVO ainda.
+//-------------------------------------------------------------------
+Static Function GravaPedidoPDV(cVend as Character, cFilVend as Character, jCli as Json, aItensReq as Array, cObs as Character) as Character
+	Local cFilAntBkp := cFilAnt as Character
+	Local aCab       := {} as Array
+	Local aItens     := {} as Array
+	Local aItemLin   := {} as Array
+	Local nI         := 0 as Numeric
+	Local cCodProd   := "" as Character
+	Local nQtdItem   := 0 as Numeric
+	Local nPrecoItem := 0 as Numeric
+	Local cOper      := "" as Character
+	Local cItemNovo  := "00" as Character
+	Local cNumPed    := "" as Character
+	Local cVendPad   := PadR(cVend, TamSX3("A3_COD")[1]) as Character
+	Local nTamProd   := TamSX3("C6_PRODUTO")[1] as Numeric
+	Local jProd      := Nil as Json
+	Private lMsErroAuto := .F. as Logical
+	Private lMsHelpAuto  := .T. as Logical
+
+	// Consumidor Final (A1_TIPO="F") usa operacao "03", demais "01" -
+	// mesma regra do precedente real GPDOEASY().
+	If jCli["tipo"] == "F"
+		cOper := "03"
+	Else
+		cOper := "01"
+	EndIf
+
+	cFilAnt := PadR(cFilVend, 2)
+
+	For nI := 1 To Len(aItensReq)
+		cCodProd := PadR(AllTrim(cValToChar(aItensReq[nI]["codigo"])), nTamProd)
+		nQtdItem := aItensReq[nI]["quantidade"]
+
+		jProd := BuscaProdPDV(cCodProd, cFilVend)
+		If jProd == Nil
+			cFilAnt := cFilAntBkp
+			Return ""
+		EndIf
+
+		// Preco vem da tabela 777 por padrao; "precoUnitario" no item e'
+		// opcional e sobrescreve, mesma logica do GravaOrcPDV.
+		If aItensReq[nI]["precoUnitario"] <> Nil
+			nPrecoItem := aItensReq[nI]["precoUnitario"]
+		Else
+			nPrecoItem := jProd["preco"]
+		EndIf
+
+		cItemNovo := Soma1(cItemNovo)
+
+		aItemLin := {}
+		aAdd(aItemLin, {"C6_ITEM"   , cItemNovo                       , NIL})
+		aAdd(aItemLin, {"C6_PRODUTO", cCodProd                        , NIL})
+		aAdd(aItemLin, {"C6_QTDVEN" , nQtdItem                        , NIL})
+		aAdd(aItemLin, {"C6_PRCVEN" , nPrecoItem                      , NIL})
+		aAdd(aItemLin, {"C6_VALOR"  , Round(nQtdItem * nPrecoItem, 2) , NIL})
+		aAdd(aItemLin, {"C6_LOCAL"  , BuscaLocPadPDV(cCodProd)        , NIL})
+		aAdd(aItemLin, {"C6_OPER"   , cOper                           , NIL})
+		aAdd(aItens, aItemLin)
+	Next nI
+
+	// Alterado - numero validado contra a SC5 - Edison G. Barbieri - Dt.30/08/2026
+	cNumPed := U_GETNUMSX("SC5", "C5_NUM", xFilial("SC5"))
+
+	If Empty(cNumPed)
+		ConOut("VendaPDV - NAO FOI POSSIVEL OBTER NUMERO LIVRE PARA O PEDIDO DE VENDA")
+		cFilAnt := cFilAntBkp
+		Return ""
+	EndIf
+
+	aAdd(aCab, {"C5_FILIAL" , xFilial("SC5") , NIL})
+	aAdd(aCab, {"C5_TIPO"   , "N"            , NIL})
+	aAdd(aCab, {"C5_CLIENTE", jCli["codigo"] , NIL})
+	aAdd(aCab, {"C5_LOJACLI", jCli["loja"]   , NIL})
+	aAdd(aCab, {"C5_CLIENT" , jCli["codigo"] , NIL})
+	aAdd(aCab, {"C5_LOJAENT", jCli["loja"]   , NIL})
+	aAdd(aCab, {"C5_TIPOCLI", jCli["tipo"]   , NIL})
+	aAdd(aCab, {"C5_CONDPAG", "001"          , NIL}) // sempre a vista/dinheiro (D11) - ver comentario acima
+	aAdd(aCab, {"C5_VEND1"  , cVendPad       , NIL})
+	aAdd(aCab, {"C5_EMISSAO", Date()         , NIL})
+	aAdd(aCab, {"C5_NUM"    , cNumPed        , NIL})
+	aAdd(aCab, {"C5_OBSPED" , cObs           , NIL})
+
+	MSExecAuto({|x,y,z| Mata410(x,y,z)}, aCab, aItens, 3)
+
+	// Alterado - confirma ou devolve o numero reservado no semaforo - Edison G. Barbieri - Dt.30/08/2026
+	If lMsErroAuto
+		RollBackSX8()
+		cNumPed := ""
+	Else
+		ConfirmSX8()
+	EndIf
+
+	cFilAnt := cFilAntBkp
+
+Return cNumPed
+
+//-------------------------------------------------------------------
+// Busca a localizacao padrao do produto (SBZ) - mesma logica do
+// precedente real GPDOEASY() (CANTUEDISON\pedido_venda_orcamento_easymobile.prw).
+// Chamada DEPOIS de cFilAnt ja estar trocado pra filial do vendedor
+// (usa xFilial() implicito, nao parametro explicito, pra respeitar
+// compartilhamento de filial se houver).
+//-------------------------------------------------------------------
+Static Function BuscaLocPadPDV(cCodProd as Character) as Character
+	Local cRet := "" as Character
+
+	dbSelectArea("SBZ")
+	SBZ->(DbSetOrder(1))
+	If SBZ->(DbSeek(xFilial("SBZ") + cCodProd))
+		cRet := SBZ->BZ_LOCPAD
+	EndIf
+	SBZ->(DbCloseArea())
+
+Return cRet
+
+
+//-------------------------------------------------------------------
+// Busca produto (SB1) + preco na tabela 777 (mesma tabela do
+// /catalogo), filtrado pela filial do vendedor. Retorna Nil se o
+// produto nao existir ou nao tiver preco ativo nessa filial. Serve de
+// preco PADRAO - GravaOrcPDV pode sobrescrever com "precoUnitario" do
+// item quando o vendedor ajustar manualmente ("Novo valor").
+//-------------------------------------------------------------------
+Static Function BuscaProdPDV(cCodProd as Character, cFilVend as Character) as Json
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	cQuery := "SELECT RTRIM(B1.B1_UM) B1_UM, DA1.DA1_PRCVEN PRCVEN "
+	cQuery += "FROM " + RetSqlName("SB1") + " B1 "
+	cQuery += "JOIN " + RetSqlName("DA1") + " DA1 ON DA1.DA1_CODPRO = B1.B1_COD AND DA1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND DA1.DA1_CODTAB = '777' AND DA1.DA1_FILIAL = ? AND DA1.DA1_ATIVO = '1' "
+	cQuery += "WHERE B1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND B1.B1_COD = ? "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cFilVend)
+	oStatement:SetString(2, cCodProd)
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["um"]    := AllTrim((cAlias)->B1_UM)
+		jRet["preco"] := (cAlias)->PRCVEN
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Busca o cliente no SA1 por CPF/CNPJ (A1_CGC). Retorna Nil se nao
+// encontrado - cliente e' obrigatorio nessa rotina (decisao do
+// usuario 22/08/2026, sem venda anonima pelo app).
+//-------------------------------------------------------------------
+Static Function BuscaCliPDV(cDoc as Character) as Json
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	cQuery := "SELECT A1_COD, A1_LOJA, A1_TIPO, RTRIM(A1_NOME) A1_NOME "
+	cQuery += "FROM " + RetSqlName("SA1") + " SA1 "
+	cQuery += "WHERE SA1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND SA1.A1_CGC = ? "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cDoc)
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["codigo"] := AllTrim((cAlias)->A1_COD)
+		jRet["loja"]   := AllTrim((cAlias)->A1_LOJA)
+		jRet["tipo"]   := AllTrim((cAlias)->A1_TIPO)
+		jRet["nome"]   := AllTrim((cAlias)->A1_NOME)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Valida CPF (11 digitos) ou CNPJ (14 digitos) pelo digito verificador
+// (modulo 11) - mesma logica ja validada em ConsTitWA.tlpp.
+//-------------------------------------------------------------------
+Static Function ValidaDocPDV(cDoc as Character) as Logical
+	Local lRet := .F. as Logical
+
+	If Len(cDoc) == 11
+		lRet := ValCpfPDV(cDoc)
+	ElseIf Len(cDoc) == 14
+		lRet := ValCnpjPDV(cDoc)
+	EndIf
+
+Return lRet
+
+Static Function ValCpfPDV(cCpf as Character) as Logical
+	Local aPeso1 := {10,9,8,7,6,5,4,3,2} as Array
+	Local aPeso2 := {11,10,9,8,7,6,5,4,3,2} as Array
+	Local nDig1  := 0 as Numeric
+	Local nDig2  := 0 as Numeric
+	Local lRet   := .T. as Logical
+
+	If DocRepetPDV(cCpf)
+		Return .F.
+	EndIf
+
+	nDig1 := DigVerifPDV(cCpf, aPeso1, 9)
+	nDig2 := DigVerifPDV(cCpf, aPeso2, 10)
+
+	If nDig1 <> Val(SubStr(cCpf, 10, 1)) .Or. nDig2 <> Val(SubStr(cCpf, 11, 1))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+Static Function ValCnpjPDV(cCnpj as Character) as Logical
+	Local aPeso1 := {5,4,3,2,9,8,7,6,5,4,3,2} as Array
+	Local aPeso2 := {6,5,4,3,2,9,8,7,6,5,4,3,2} as Array
+	Local nDig1  := 0 as Numeric
+	Local nDig2  := 0 as Numeric
+	Local lRet   := .T. as Logical
+
+	If DocRepetPDV(cCnpj)
+		Return .F.
+	EndIf
+
+	nDig1 := DigVerifPDV(cCnpj, aPeso1, 12)
+	nDig2 := DigVerifPDV(cCnpj, aPeso2, 13)
+
+	If nDig1 <> Val(SubStr(cCnpj, 13, 1)) .Or. nDig2 <> Val(SubStr(cCnpj, 14, 1))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+Static Function DigVerifPDV(cDoc as Character, aPeso as Array, nQtd as Numeric) as Numeric
+	Local nSoma  := 0 as Numeric
+	Local nResto := 0 as Numeric
+	Local nI     := 0 as Numeric
+	Local nDig   := 0 as Numeric
+
+	For nI := 1 To nQtd
+		nSoma += Val(SubStr(cDoc, nI, 1)) * aPeso[nI]
+	Next nI
+
+	nResto := nSoma % 11
+
+	If nResto < 2
+		nDig := 0
+	Else
+		nDig := 11 - nResto
+	EndIf
+
+Return nDig
+
+Static Function DocRepetPDV(cDoc as Character) as Logical
+	Local cPrimeiro := SubStr(cDoc, 1, 1) as Character
+	Local nI        := 0 as Numeric
+	Local lRet      := .T. as Logical
+
+	For nI := 2 To Len(cDoc)
+		If SubStr(cDoc, nI, 1) <> cPrimeiro
+			lRet := .F.
+			Exit
+		EndIf
+	Next nI
+
+Return lRet
+
+//-------------------------------------------------------------------
+// Valida o token do header X-Pdv-Token contra a Z25 (hash SHA-256).
+// Duplicada por arquivo - Static Function e' privada por arquivo em
+// AdvPL/TLPP (nao existe import entre .tlpp para funcao static).
+//-------------------------------------------------------------------
+Static Function BearPDV() as Json
+	Local jHeader    := oRest:getHeaderRequest() as Json
+	Local cToken     := "" as Character
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	If jHeader <> Nil .And. jHeader["X-Pdv-Token"] <> Nil
+		cToken := AllTrim(cValToChar(jHeader["X-Pdv-Token"]))
+	EndIf
+
+	If Empty(cToken)
+		Return Nil
+	EndIf
+
+	cQuery := "SELECT Z25.Z25_VEND VEND, RTRIM(A3.A3_NOME) A3NOME, Z25.Z25_FILVEN FILVEN "
+	cQuery += "FROM " + RetSqlName("Z25") + " Z25 "
+	cQuery += "JOIN " + RetSqlName("SA3") + " A3 ON A3.A3_COD = Z25.Z25_VEND AND A3.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE Z25.D_E_L_E_T_ = ' ' "
+	cQuery += "AND Z25.Z25_TOKEN = ? "
+	cQuery += "AND Z25.Z25_ATIVO = '1' "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, SHA256(cToken))
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["vendedor"] := AllTrim((cAlias)->VEND)
+		jRet["nome"]     := AllTrim((cAlias)->A3NOME)
+		jRet["filial"]   := AllTrim((cAlias)->FILVEN)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Monta resposta de erro no padrao TTALK. Compartilhada por todos os
+// endpoints REST do PDV Movel.
+//-------------------------------------------------------------------
+Static Function ErroPDV(cCode as Character, cMessage as Character) as Character
+	Local jError := JsonObject():New() as Json
+
+	jError["code"]            := cCode
+	jError["message"]         := cMessage
+	jError["detailedMessage"] := cMessage
+
+Return jError:toJson()

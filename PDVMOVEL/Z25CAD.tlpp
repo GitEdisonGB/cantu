@@ -1,0 +1,63 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+#include "fwmvcdef.ch"
+
+Namespace cantu.pdvmovel.mvc
+
+
+/*/{Protheus.doc} Z25CAD
+Tela de visualizacao dos dispositivos/tokens do app PDV Movel
+(tabela Z25). Inclusao de novo device fica no Z25NOVO (nao da pra
+ser um Incluir MVC padrao - o token so pode ser mostrado em texto
+puro uma vez, na criacao; depois so existe o hash gravado).
+@type Function
+@author Edison G. Barbieri
+@since 20/08/2026
+/*/
+
+User Function Z25CAD()
+	Local oBrowse as Object
+
+	oBrowse := FWMBrowse():New()
+	oBrowse:SetAlias('Z25')
+
+	oBrowse:AddLegend( "Z25_ATIVO=='1'", "GREEN", "ATIVO" )
+	oBrowse:AddLegend( "Z25_ATIVO=='2'", "RED"  , "INATIVO" )
+
+	oBrowse:SetDescription('Dispositivos PDV Movel')
+	oBrowse:Activate()
+Return
+
+User Function MenuDef()
+	Local aRotina := {} as Array
+
+	aAdd( aRotina, { 'Visualizar' , 'VIEWDEF.cantu.pdvmovel.mvc.Z25CAD', 0, 2, 0, NIL } )
+	ADD OPTION aRotina TITLE 'Gerar Token' ACTION 'Processa({|| U_Z25NOVO()}, "Gerando token do device.")' OPERATION 3 ACCESS 0
+
+Return aRotina
+
+User Function ModelDef()
+	Local oModel   as Object
+	Local oStrZ25  := FWFormStruct(1,"Z25") as Object
+
+	oModel := MPFormModel():New("MD_Z25")
+	oModel:addFields('MASTERZ25',,oStrZ25)
+
+	oStrZ25:SetProperty('Z25_VEND', MODEL_FIELD_VALID, FwBuildFeature(STRUCT_FEATURE_VALID, 'ExistCpo("SA3", M->Z25_VEND)'))
+
+	oModel:SetPrimaryKey({'Z25_FILIAL','Z25_COD'})
+
+Return oModel
+
+User Function ViewDef()
+	Local oModel  := FWLoadModel("cantu.pdvmovel.mvc.Z25CAD") as Object
+	Local oView   as Object
+	Local oStrZ25 := FWFormStruct(2, 'Z25') as Object
+
+	oView := FWFormView():New()
+	oView:SetModel(oModel)
+	oView:AddField('FORM_Z25', oStrZ25, 'MASTERZ25')
+	oView:CreateHorizontalBox('BOX_FORM_Z25', 100)
+	oView:SetOwnerView('FORM_Z25', 'BOX_FORM_Z25')
+
+Return oView

@@ -1,0 +1,623 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+Namespace cantu.pdvmovel.api
+
+/*/{Protheus.doc} ClientePDV
+Endpoint REST (GET) que consulta um cliente por CPF/CNPJ no SA1 - usado
+pelo app pra validar o cliente ANTES de montar o carrinho (o /venda ja
+resolve cliente internamente, mas nao tem como o app confirmar que o
+cliente existe sem tentar fechar a venda). Cliente e' obrigatorio em
+toda venda (decisao do usuario 22/08/2026 - sem venda anonima).
+Ver C:\spool\decisoes.md secao 4 (contrato REST).
+@type Function
+@author Edison G. Barbieri
+@since 22/08/2026
+/*/
+
+//-------------------------------------------------------------------
+// GET /api/pdvmovel/v1/cliente/:cnpjcpf
+// Header: X-Pdv-Token (obrigatorio)
+// Response: 200 OK {"codigo","loja","nome","tipo"} / 400 / 401 / 404
+//-------------------------------------------------------------------
+@Get("/api/pdvmovel/v1/cliente/:cnpjcpf")
+User Function ClientePDV() as Logical
+	Local jSessao := Nil as Json
+	Local jPath   := oRest:getPathParamsRequest() as Json
+	Local cDoc    := "" as Character
+	Local jCli    := Nil as Json
+
+	jSessao := BearPDV()
+	If jSessao == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
+	EndIf
+
+	If jPath <> Nil .And. jPath["cnpjcpf"] <> Nil
+		cDoc := AllTrim(cValToChar(jPath["cnpjcpf"]))
+	EndIf
+
+	If !ValidaDocPDV(cDoc)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "CPF/CNPJ invalido"))
+	EndIf
+
+	jCli := BuscaCliPDV(cDoc)
+	If jCli == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(404, ErroPDV("404", "Cliente nao cadastrado"))
+	EndIf
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jCli:toJson())
+
+//-------------------------------------------------------------------
+// POST /api/pdvmovel/v1/cliente
+// Header: X-Pdv-Token (obrigatorio)
+// Body: {"documento","nome","tipoPessoa":"CI|PF|OS","endereco","bairro",
+//   "municipio","uf","cep","ddd","telefone","inscricaoEstadual"?,
+//   "naturezaFinanceira","optanteSimplesNacional":bool,"contribuinteIcms":bool,
+//   "optanteSimples":bool,"enviaSerasa":bool}
+// Response: 201 Created {"codigo","loja","nome"} / 400 / 401 / 409 / 500
+// ATENCAO (decisao do usuario 22/08/2026): implementado com o conjunto
+// MINIMO de campos - a tela interativa do MATA030/CRMA980 tem 150+
+// campos marcados como obrigatorios no SX3 (ver decisoes.md), mas o
+// unico precedente real de ExecAuto de inclusao de cliente ATIVO em
+// producao (PROJ 2010\INTEGRACOES\IMPCLINET.PRW, funcao IncluiCliente)
+// tambem so seta um subconjunto - assumido que o CRMA980/FWVetByDic
+// completa o resto via default quando omitido do vetor. NAO TESTADO AO
+// VIVO ainda (REST fora do ar no dia da implementacao). Confronto com os
+// dados reais que o Easy Mobile envia fica para depois (decisao do
+// usuario).
+//-------------------------------------------------------------------
+@Post("/api/pdvmovel/v1/cliente")
+User Function InclCliPDV() as Logical
+	Local jSessao   := Nil as Json
+	Local cBody     := oRest:getBodyRequest() as Character
+	Local jBody     := JsonObject():New() as Json
+	Local cDoc      := "" as Character
+	Local jCli      := Nil as Json
+	Local cCodNovo  := "" as Character
+	Local jResp     := JsonObject():New() as Json
+	Private cErroCliPDV := "" as Character
+
+	jSessao := BearPDV()
+	If jSessao == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
+	EndIf
+
+	If jBody:fromJson(cBody) <> Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Corpo JSON invalido"))
+	EndIf
+
+	cDoc := AllTrim(cValToChar(jBody:GetJsonText("documento")))
+
+	If !ValidaDocPDV(cDoc)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "CPF/CNPJ invalido"))
+	EndIf
+
+	If !ValCamposCliPDV(jBody)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Campos obrigatorios ausentes (nome, tipoPessoa, endereco, municipio, uf, cep, ddd, telefone, naturezaFinanceira)"))
+	EndIf
+
+	jCli := BuscaCliPDV(cDoc)
+	If jCli <> Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(409, ErroPDV("409", "Cliente ja cadastrado (codigo " + jCli["codigo"] + "/" + jCli["loja"] + ")"))
+	EndIf
+
+	Try
+		cCodNovo := GravaCliPDV(cDoc, jBody, jSessao["vendedor"], jSessao["filial"])
+	Catch oError
+		FWLogMsg("ERROR", , "REST", "InclCliPDV", , "01", oError:Description, 0, 0, {})
+		jResp := JsonObject():New()
+		jResp["code"]            := "500"
+		jResp["message"]         := "Erro interno ao gravar cliente"
+		jResp["detailedMessage"] := oError:Description
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, jResp:toJson())
+	EndTry
+
+	If Empty(cCodNovo)
+		jResp := JsonObject():New()
+		jResp["code"]            := "500"
+		jResp["message"]         := "Falha ao gravar cliente no SA1"
+		jResp["detailedMessage"] := cErroCliPDV
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, jResp:toJson())
+	EndIf
+
+	jResp["codigo"] := cCodNovo
+	jResp["loja"]   := "01"
+	jResp["nome"]   := AllTrim(cValToChar(jBody:GetJsonText("nome")))
+
+	// Dispara o mesmo workflow de validacao fiscal que o JOBEASYF.prw
+	// manda pros clientes vindos do Easy Mobile - decisao do usuario
+	// 29/08/2026: chamado SINCRONO aqui em vez de esperar o job (que so
+	// reconhece origem "plentech"), ja que aqui ja sabemos que o cliente
+	// veio do PDV Movel sem precisar decodificar A1_USERLGI. NAO mexe no
+	// JOBEASYF.prw - so replica o mesmo template/destinatarios. Falha no
+	// envio nao derruba a resposta 201 (cliente ja foi gravado com
+	// sucesso) - so loga o erro.
+	Try
+		EnviaWfValidFiscalPDV(cCodNovo, "01", AllTrim(cValToChar(jBody:GetJsonText("nome"))))
+	Catch oErrorWf
+		FWLogMsg("ERROR", , "REST", "InclCliPDV", , "02", oErrorWf:Description, 0, 0, {})
+	EndTry
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(201, jResp:toJson())
+
+//-------------------------------------------------------------------
+// Dispara o workflow de validacao fiscal (TWFProcess) pro cliente
+// recem-criado via PDV Movel - MESMO template/destinatarios que o job
+// JOBEASYF.prw ja usa pros clientes vindos do Easy Mobile (so troca o
+// texto do assunto). Tambem marca A1_CGC_SO3="S" na SA1, pra manter
+// consistente com aquele job (evita ele reavaliar esse mesmo cliente
+// depois - decodificaria A1_USERLGI, nao acharia "plentech", e
+// marcaria "N" sem necessidade). NAO mexe no JOBEASYF.prw - so replica.
+//-------------------------------------------------------------------
+Static Function EnviaWfValidFiscalPDV(cCodCli as Character, cLojaCli as Character, cNomeCli as Character)
+	Local oProcess    as Object
+	Local oHTML       as Object
+	Local cEmailFisc  := "" as Character
+
+	// TEMPORARIO (29/08/2026, pedido do usuario): so o e-mail de teste
+	// dele mesmo por enquanto, ate a lista real do fiscal ser confirmada -
+	// nao usa MV_XJEMAIL (lista do JOBEASYF.prw) de proposito ainda.
+	cEmailFisc := "suporte@cantu.com.br"
+
+	oProcess := TWFProcess():New("JOBEASYF", "VALIDACAO FISCAL - CLIENTE PDV MOVEL")
+	oProcess:NewTask("JOBEASYF", "\workflow\jobeasyf_new.html")
+	oProcess:cSubject := "Cliente PDV Movel pendente de validacao fiscal - " + cNomeCli
+	oHTML := oProcess:oHTML
+	oHtml:ValByName("COD_CLI", cCodCli)
+	oHtml:ValByName("LOJA_CLI", cLojaCli)
+	oHtml:ValByName("NOME_CLI", cNomeCli)
+	oHtml:ValByName("DATA1", dDataBase)
+	oProcess:cTo := cEmailFisc
+	oProcess:Start()
+	oProcess:Finish()
+
+	dbSelectArea("SA1")
+	SA1->(DbSetOrder(1))
+	// PadR defensivo (achado real da revisao 30/08/2026) - cCodCli/
+	// cLojaCli podem vir sem o tamanho exato do indice.
+	If SA1->(DbSeek(xFilial("SA1") + PadR(cCodCli, TamSX3("A1_COD")[1]) + PadR(cLojaCli, TamSX3("A1_LOJA")[1])))
+		RecLock("SA1", .F.)
+		SA1->A1_CGC_SO3 := "S"
+		MsUnlock()
+	EndIf
+
+Return
+
+//-------------------------------------------------------------------
+// Valida presenca dos campos obrigatorios do cadastro de cliente (
+// conjunto minimo - ver comentario acima de InclCliPDV).
+//-------------------------------------------------------------------
+Static Function ValCamposCliPDV(jBody as Json) as Logical
+	Local lRet       := .T. as Logical
+	Local cTpPessoa  := Upper(AllTrim(cValToChar(jBody:GetJsonText("tipoPessoa")))) as Character
+
+	If Empty(AllTrim(cValToChar(jBody:GetJsonText("nome"))))
+		lRet := .F.
+	ElseIf cTpPessoa <> "CI" .And. cTpPessoa <> "PF" .And. cTpPessoa <> "OS"
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("endereco"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("bairro"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("municipio"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("uf"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("cep"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("ddd"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("telefone"))))
+		lRet := .F.
+	ElseIf Empty(AllTrim(cValToChar(jBody:GetJsonText("naturezaFinanceira"))))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+//-------------------------------------------------------------------
+// Grava o cliente novo no SA1 via ExecAuto CRMA980 (modulo CRM) - mesmo
+// padrao REAL e ATIVO em producao encontrado em
+// PROJ 2010\INTEGRACOES\IMPCLINET.PRW (funcao IncluiCliente), que usa
+// MSExecAuto({|a,b,c| CRMA980(a,b,c)}, aVetor, 3) em vez do MATA030 puro
+// (o unico precedente de MATA030 no projeto esta desativado/comentado em
+// PROJ 2010\WEBSERVICES\INOUTB2B.PRW - nunca executou). Os 6 campos
+// fiscais especificos da Cantu (A1_NATUREZ, A1_SIMPNAC, A1_TPESSOA,
+// A1_CONTRIB, A1_SIMPLES, A1_X_SERAS) e a codificacao exata dos valores
+// vem do PE real PE_CAMPOS_FORMCLIENTE em C:\spool\CANTU.js - a mesma
+// customizacao que o Easy Mobile usa hoje. A1_TIPO="F" (Consumidor
+// Final) e A1_LOJA="01" fixos - mesmo default do precedente real.
+// Demais campos que a tela interativa marca como obrigatorios no SX3
+// (150+, ver decisoes.md) NAO sao setados aqui - assumido que o
+// CRMA980/FWVetByDic completa via default quando omitidos, igual o
+// IMPCLINET.PRW real tambem so seta um subconjunto. TESTADO AO VIVO
+// 29/08/2026, varias rodadas (detalhe completo em decisoes.md secao
+// 6.2): confirmado que o CRMA980 valida campos NA ORDEM do array -
+// A1_COD_MUN precisa vir DEPOIS de A1_EST (confirmado, corrigido).
+// A1_INSCR ("ISENTO") tambem seguia rejeitado apos essa correcao -
+// causa raiz real (30/08/2026): eu tinha movido A1_MUN/A1_COD_MUN pra
+// ENTRE A1_EST e A1_INSCR (hipotese A030VldUCod, nunca confirmada),
+// o que DIVERGIA da ordem exata do IMPCLINET.PRW real (la, A1_INSCR
+// vem logo apos A1_EST; A1_MUN/A1_COD_MUN vem so' depois de A1_CEP).
+// Revertido pra ordem exata do precedente - NAO reordenar de novo sem
+// reconferir contra o fonte real (mesma licao ja documentada acima).
+//-------------------------------------------------------------------
+Static Function GravaCliPDV(cDoc as Character, jBody as Json, cVend as Character, cFilVend as Character) as Character
+	Local aVetor    := {} as Array
+	Local cPessoa   := "" as Character
+	Local cCodNovo  := "" as Character
+	Local cLojaNova := "" as Character
+	Local cInscr    := "" as Character
+	Local cNome     := "" as Character
+	Local cCodMun   := "" as Character
+	Local cContrib  := "" as Character
+	Local cVendPad  := PadR(cVend, TamSX3("A1_VEND")[1]) as Character
+	Local cFilAntBkp := cFilAnt as Character
+	Private lMsErroAuto := .F. as Logical
+	Private lMsHelpAuto  := .T. as Logical
+
+	If Len(cDoc) == 11
+		cPessoa := "F"
+	Else
+		cPessoa := "J"
+	EndIf
+
+	// Inscricao Estadual ("inscricaoEstadual" e' campo OPCIONAL no
+	// contrato). CAUSA RAIZ REAL confirmada 30/08/2026 (via excecao forcada
+	// mostrando o valor exato na resposta HTTP): GetJsonText() pra uma chave
+	// AUSENTE no JSON nao retorna Nil nem "" - retorna a STRING LITERAL de 4
+	// caracteres "null" (o texto, nao o tipo). Empty("null") e' .F. (string
+	// nao-vazia), entao o fallback pra "ISENTO" nunca disparava - o CRMA980
+	// recebia literalmente o texto "null" como inscricao estadual, e o erro
+	// do IE() sempre mostrava exatamente isso ("Conteudo atribuido: [null]") -
+	// nao era um placeholder generico de campo vazio, era o valor real. Checar
+	// os dois casos explicitamente. Default "ISENTO" pro cliente isento -
+	// mesmo padrao real de VINDICLI.PRW/ImpAdena.prw.
+	cInscr := AllTrim(cValToChar(jBody:GetJsonText("inscricaoEstadual")))
+	If Empty(cInscr) .Or. Upper(cInscr) == "NULL"
+		cInscr := "ISENTO"
+	EndIf
+
+	cNome   := AllTrim(cValToChar(jBody:GetJsonText("nome")))
+	cCodMun := BuscaCodMunPDV(Upper(AllTrim(cValToChar(jBody:GetJsonText("uf")))), Upper(AllTrim(cValToChar(jBody:GetJsonText("municipio")))))
+	cContrib := BoolParaSimNao2PDV(jBody["contribuinteIcms"])
+
+	cCodNovo  := GetSxeNum("SA1", "A1_COD")
+	cLojaNova := PadR("01", TamSX3("A1_LOJA")[1])
+
+	// Troca pra filial do vendedor ANTES do ExecAuto - parametros/
+	// validacoes (ex: SX6, IE por UF) podem ser filial-especificos, e o
+	// endpoint nunca trocava filial antes (achado real 30/08/2026 -
+	// diferente do VendaPDV.tlpp, que ja fazia isso desde o inicio).
+	cFilAnt := PadR(cFilVend, 2)
+
+	// Ordem EXATA (relativa, ignorando os campos do IMPCLINET.PRW que nao
+	// uso aqui) do vetor real do IMPCLINET.PRW - comparado campo a campo
+	// em 29/08/2026 apos achar 2 bugs de ordem (A1_COD_MUN, A1_INSCR).
+	// NAO reordenar sem reconferir contra o fonte real.
+	aAdd(aVetor, {"A1_PESSOA" , cPessoa                                                    , NIL})
+	aAdd(aVetor, {"A1_COD"    , cCodNovo                                                    , NIL})
+	aAdd(aVetor, {"A1_LOJA"   , cLojaNova                                                   , NIL})
+	aAdd(aVetor, {"A1_TIPO"   , "F"                                                         , NIL}) // Consumidor Final - mesmo default do precedente real IMPCLINET.PRW
+	aAdd(aVetor, {"A1_EST"    , Upper(AllTrim(cValToChar(jBody:GetJsonText("uf"))))          , NIL})
+	aAdd(aVetor, {"A1_INSCR"  , cInscr                                                      , NIL})
+	aAdd(aVetor, {"A1_NOME"   , cNome                                                       , NIL})
+	aAdd(aVetor, {"A1_NREDUZ" , SubStr(cNome, 1, TamSX3("A1_NREDUZ")[1])                     , NIL})
+	aAdd(aVetor, {"A1_DDD"    , AllTrim(cValToChar(jBody:GetJsonText("ddd")))                , NIL})
+	aAdd(aVetor, {"A1_TEL"    , AllTrim(cValToChar(jBody:GetJsonText("telefone")))           , NIL})
+	aAdd(aVetor, {"A1_END"    , AllTrim(cValToChar(jBody:GetJsonText("endereco")))          , NIL})
+	aAdd(aVetor, {"A1_BAIRRO" , AllTrim(cValToChar(jBody:GetJsonText("bairro")))             , NIL})
+	aAdd(aVetor, {"A1_CEP"    , AllTrim(cValToChar(jBody:GetJsonText("cep")))                , NIL})
+	aAdd(aVetor, {"A1_MUN"    , Upper(AllTrim(cValToChar(jBody:GetJsonText("municipio"))))   , NIL})
+	aAdd(aVetor, {"A1_COD_MUN", cCodMun                                                     , NIL})
+	aAdd(aVetor, {"A1_CODPAIS", "01058"                                                     , NIL})
+	aAdd(aVetor, {"A1_PAIS"   , "105"                                                        , NIL})
+	// A1_EMAIL e' obrigatorio no SX3 mas o contrato REST do PDV Movel nao
+	// coleta e-mail do cliente ainda - fixo pro e-mail do financeiro (pedido
+	// explicito do usuario 30/08/2026), ate decidir se/como capturar um
+	// e-mail real do cliente no app.
+	aAdd(aVetor, {"A1_EMAIL"  , "credito@cantu.com.br"                                     , NIL})
+	// Campos especificos da Cantu (PE_CAMPOS_FORMCLIENTE, CANTU.js) - mesma
+	// codificacao exata usada pelo Easy Mobile hoje (ver comentario acima).
+	aAdd(aVetor, {"A1_NATUREZ", AllTrim(cValToChar(jBody:GetJsonText("naturezaFinanceira"))) , NIL})
+	aAdd(aVetor, {"A1_VEND"   , cVendPad                                                     , NIL})
+	aAdd(aVetor, {"A1_TPESSOA", Upper(AllTrim(cValToChar(jBody:GetJsonText("tipoPessoa"))))  , NIL})
+	aAdd(aVetor, {"A1_X_SERAS", BoolParaSimNaoSNPDV(jBody["enviaSerasa"])                    , NIL})
+	aAdd(aVetor, {"A1_SIMPNAC", BoolParaSimNao2PDV(jBody["optanteSimplesNacional"])          , NIL})
+	aAdd(aVetor, {"A1_SIMPLES", BoolParaSimNao2PDV(jBody["optanteSimples"])                  , NIL})
+	aAdd(aVetor, {"A1_CONTRIB", cContrib                                                    , NIL})
+	aAdd(aVetor, {"A1_CGC"    , cDoc                                                        , NIL}) // por ultimo - mesma posicao do IMPCLINET.PRW real (adicionado separado, so na inclusao)
+
+	// Try/Catch cobrindo o trecho com cFilAnt trocado (achado real da
+	// revisao 30/08/2026: sem isso, uma excecao aqui deixa cFilAnt
+	// permanentemente errado na thread do AppServer). Restaura em AMBOS
+	// os caminhos e relanca o erro original via UserException, pra nao
+	// mudar o contrato de erro que o InclCliPDV ja trata.
+	Try
+		MSExecAuto({|a,b,c| CRMA980(a,b,c)}, aVetor, 3)
+
+		If lMsErroAuto
+			If !ExistDir("/pdvmovel/log")
+				MakeDir("/pdvmovel/log")
+			EndIf
+			cErroCliPDV := MostraErro("/pdvmovel/log", "clientepdv_err.log")
+			cCodNovo := ""
+		EndIf
+	Catch oErroFil
+		cFilAnt := cFilAntBkp
+		UserException(oErroFil:Description)
+	EndTry
+
+	cFilAnt := cFilAntBkp
+
+Return cCodNovo
+
+//-------------------------------------------------------------------
+// Resolve o codigo IBGE do municipio (CC2) por UF+nome - CC2 e' tabela
+// COMPARTILHADA (sem segregacao por filial, X2_ARQUIVO="CC2CMP"). SQL
+// sem filtro de filial (mesmo padrao real de
+// INTEGRACAO MDF CTE\HiveCte.prw, funcao HVGetCodMun).
+// HIPOTESE em teste (29/08/2026, ainda nao confirmada ao vivo): no
+// vetor do ExecAuto, A1_COD_MUN precisa vir DEPOIS de A1_EST - o
+// CRMA980 pode validar campos NA ORDEM do array, entao validar
+// A1_COD_MUN antes de A1_EST estar setado faria a busca interna dele
+// (CC2 ordem 1, FILIAL+EST+CODMUN) rodar com EST vazio e falhar, mesmo
+// o codigo estando certo (busca isolada via DiagCC2PDV.tlpp confirmou
+// que o dado/indice em si estao OK - ver decisoes.md secao 6.2).
+// Retorna "" se nao encontrar (nao bloqueia a inclusao).
+//-------------------------------------------------------------------
+Static Function BuscaCodMunPDV(cUf as Character, cMunicipio as Character) as Character
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local cRet       := "" as Character
+
+	cQuery := "SELECT CC2_CODMUN FROM " + RetSqlName("CC2") + " CC2 "
+	cQuery += "WHERE CC2.D_E_L_E_T_ = ' ' "
+	cQuery += "AND CC2.CC2_EST = ? "
+	cQuery += "AND RTRIM(CC2.CC2_MUN) = ? "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cUf)
+	oStatement:SetString(2, cMunicipio)
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		cRet := AllTrim((cAlias)->CC2_CODMUN)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return cRet
+Static Function BoolParaSimNao2PDV(xVal as Variant) as Character
+	Local lVal := .F. as Logical
+	Local cRet := "2" as Character
+
+	If ValType(xVal) == "L"
+		lVal := xVal
+	EndIf
+
+	If lVal
+		cRet := "1"
+	Else
+		cRet := "2"
+	EndIf
+
+Return cRet
+
+//-------------------------------------------------------------------
+// Converte booleano do body em "S"/"N" - mesma codificacao exata de
+// A1_X_SERAS no PE_CAMPOS_FORMCLIENTE (CANTU.js, diferente da
+// codificacao 1/2 dos outros campos). Nil/tipo invalido cai em "N".
+//-------------------------------------------------------------------
+Static Function BoolParaSimNaoSNPDV(xVal as Variant) as Character
+	Local lVal := .F. as Logical
+	Local cRet := "N" as Character
+
+	If ValType(xVal) == "L"
+		lVal := xVal
+	EndIf
+
+	If lVal
+		cRet := "S"
+	Else
+		cRet := "N"
+	EndIf
+
+Return cRet
+
+
+//-------------------------------------------------------------------
+// Busca o cliente no SA1 por CPF/CNPJ (A1_CGC). Retorna Nil se nao
+// encontrado. Duplicada por arquivo (mesma logica de VendaPDV.tlpp) -
+// Static Function e' privada por arquivo em AdvPL/TLPP.
+//-------------------------------------------------------------------
+Static Function BuscaCliPDV(cDoc as Character) as Json
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	cQuery := "SELECT A1_COD, A1_LOJA, A1_TIPO, RTRIM(A1_NOME) A1_NOME "
+	cQuery += "FROM " + RetSqlName("SA1") + " SA1 "
+	cQuery += "WHERE SA1.D_E_L_E_T_ = ' ' "
+	cQuery += "AND SA1.A1_CGC = ? "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cDoc)
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["codigo"] := AllTrim((cAlias)->A1_COD)
+		jRet["loja"]   := AllTrim((cAlias)->A1_LOJA)
+		jRet["tipo"]   := AllTrim((cAlias)->A1_TIPO)
+		jRet["nome"]   := AllTrim((cAlias)->A1_NOME)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Valida CPF (11 digitos) ou CNPJ (14 digitos) pelo digito verificador
+// (modulo 11) - mesma logica ja validada em ConsTitWA.tlpp/VendaPDV.tlpp.
+//-------------------------------------------------------------------
+Static Function ValidaDocPDV(cDoc as Character) as Logical
+	Local lRet := .F. as Logical
+
+	If Len(cDoc) == 11
+		lRet := ValCpfPDV(cDoc)
+	ElseIf Len(cDoc) == 14
+		lRet := ValCnpjPDV(cDoc)
+	EndIf
+
+Return lRet
+
+Static Function ValCpfPDV(cCpf as Character) as Logical
+	Local aPeso1 := {10,9,8,7,6,5,4,3,2} as Array
+	Local aPeso2 := {11,10,9,8,7,6,5,4,3,2} as Array
+	Local nDig1  := 0 as Numeric
+	Local nDig2  := 0 as Numeric
+	Local lRet   := .T. as Logical
+
+	If DocRepetPDV(cCpf)
+		Return .F.
+	EndIf
+
+	nDig1 := DigVerifPDV(cCpf, aPeso1, 9)
+	nDig2 := DigVerifPDV(cCpf, aPeso2, 10)
+
+	If nDig1 <> Val(SubStr(cCpf, 10, 1)) .Or. nDig2 <> Val(SubStr(cCpf, 11, 1))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+Static Function ValCnpjPDV(cCnpj as Character) as Logical
+	Local aPeso1 := {5,4,3,2,9,8,7,6,5,4,3,2} as Array
+	Local aPeso2 := {6,5,4,3,2,9,8,7,6,5,4,3,2} as Array
+	Local nDig1  := 0 as Numeric
+	Local nDig2  := 0 as Numeric
+	Local lRet   := .T. as Logical
+
+	If DocRepetPDV(cCnpj)
+		Return .F.
+	EndIf
+
+	nDig1 := DigVerifPDV(cCnpj, aPeso1, 12)
+	nDig2 := DigVerifPDV(cCnpj, aPeso2, 13)
+
+	If nDig1 <> Val(SubStr(cCnpj, 13, 1)) .Or. nDig2 <> Val(SubStr(cCnpj, 14, 1))
+		lRet := .F.
+	EndIf
+
+Return lRet
+
+Static Function DigVerifPDV(cDoc as Character, aPeso as Array, nQtd as Numeric) as Numeric
+	Local nSoma  := 0 as Numeric
+	Local nResto := 0 as Numeric
+	Local nI     := 0 as Numeric
+	Local nDig   := 0 as Numeric
+
+	For nI := 1 To nQtd
+		nSoma += Val(SubStr(cDoc, nI, 1)) * aPeso[nI]
+	Next nI
+
+	nResto := nSoma % 11
+
+	If nResto < 2
+		nDig := 0
+	Else
+		nDig := 11 - nResto
+	EndIf
+
+Return nDig
+
+Static Function DocRepetPDV(cDoc as Character) as Logical
+	Local cPrimeiro := SubStr(cDoc, 1, 1) as Character
+	Local nI        := 0 as Numeric
+	Local lRet      := .T. as Logical
+
+	For nI := 2 To Len(cDoc)
+		If SubStr(cDoc, nI, 1) <> cPrimeiro
+			lRet := .F.
+			Exit
+		EndIf
+	Next nI
+
+Return lRet
+
+//-------------------------------------------------------------------
+// Valida o token do header X-Pdv-Token contra a Z25 (hash SHA-256).
+// Duplicada por arquivo - Static Function e' privada por arquivo em
+// AdvPL/TLPP (nao existe import entre .tlpp para funcao static).
+//-------------------------------------------------------------------
+Static Function BearPDV() as Json
+	Local jHeader    := oRest:getHeaderRequest() as Json
+	Local cToken     := "" as Character
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local jRet       := Nil as Json
+
+	If jHeader <> Nil .And. jHeader["X-Pdv-Token"] <> Nil
+		cToken := AllTrim(cValToChar(jHeader["X-Pdv-Token"]))
+	EndIf
+
+	If Empty(cToken)
+		Return Nil
+	EndIf
+
+	cQuery := "SELECT Z25.Z25_VEND VEND, RTRIM(A3.A3_NOME) A3NOME, Z25.Z25_FILVEN FILVEN "
+	cQuery += "FROM " + RetSqlName("Z25") + " Z25 "
+	cQuery += "JOIN " + RetSqlName("SA3") + " A3 ON A3.A3_COD = Z25.Z25_VEND AND A3.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE Z25.D_E_L_E_T_ = ' ' "
+	cQuery += "AND Z25.Z25_TOKEN = ? "
+	cQuery += "AND Z25.Z25_ATIVO = '1' "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, SHA256(cToken))
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["vendedor"] := AllTrim((cAlias)->VEND)
+		jRet["nome"]     := AllTrim((cAlias)->A3NOME)
+		jRet["filial"]   := AllTrim((cAlias)->FILVEN)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+//-------------------------------------------------------------------
+// Monta resposta de erro no padrao TTALK. Compartilhada por todos os
+// endpoints REST do PDV Movel.
+//-------------------------------------------------------------------
+Static Function ErroPDV(cCode as Character, cMessage as Character) as Character
+	Local jError := JsonObject():New() as Json
+
+	jError["code"]            := cCode
+	jError["message"]         := cMessage
+	jError["detailedMessage"] := cMessage
+
+Return jError:toJson()

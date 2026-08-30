@@ -1,0 +1,113 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+Namespace cantu.pdvmovel.api
+
+/*/{Protheus.doc} AuthPDV
+Endpoint REST (POST) de autenticacao do app PDV Movel. Nao usa
+usuario/senha (SA3 nao tem senha nativa) - usa token fixo por
+device, gerado manualmente no onboarding de cada terminal e
+validado contra a tabela Z25 (hash SHA-256, nunca texto puro).
+Confirma o token e devolve os dados que o app precisa guardar
+localmente (vendedor, nome, filial) para usar nas demais chamadas.
+O mesmo token e reenviado como "Authorization: Bearer <token>" em
+todo endpoint protegido - nao ha sessao/expiracao separada nessa v1.
+Ver C:\spool\decisoes.md secao 3.2 (estrutura da Z25).
+@type Function
+@author Edison G. Barbieri
+@since 20/08/2026
+/*/
+
+//-------------------------------------------------------------------
+// POST /api/pdvmovel/v1/auth
+// Body: {"vendedor": "<A3_COD>", "token": "<token em texto puro>"}
+// Response: 200 OK {"vendedor","nome","filial"} / 400 / 401 / 500
+//-------------------------------------------------------------------
+@Post("/api/pdvmovel/v1/auth")
+User Function AuthPDV() as Logical
+	Local cBody  := oRest:getBodyRequest() as Character
+	Local jBody  := JsonObject():New() as Json
+	Local cVend  := "" as Character
+	Local cToken := "" as Character
+	Local jVend  := Nil as Json
+
+	If jBody:fromJson(cBody) <> Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Corpo JSON invalido"))
+	EndIf
+
+	cVend  := PadR(AllTrim(jBody:GetJsonText("vendedor")), TamSX3("A3_COD")[1])
+	cToken := AllTrim(jBody:GetJsonText("token"))
+
+	If Empty(AllTrim(cVend)) .Or. Empty(cToken)
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(400, ErroPDV("400", "Campos 'vendedor' e 'token' sao obrigatorios"))
+	EndIf
+
+	Try
+		jVend := ChkTokPDV(cVend, cToken)
+	Catch oError
+		FWLogMsg("ERROR", , "REST", "AuthPDV", , "01", oError:Description, 0, 0, {})
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, ErroPDV("500", "Erro interno ao autenticar"))
+	EndTry
+
+	If jVend == Nil
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(401, ErroPDV("401", "Vendedor ou token invalido"))
+	EndIf
+
+	oRest:setKeyHeaderResponse("Content-Type", "application/json")
+Return oRest:setStatusResponse(200, jVend:toJson())
+
+//-------------------------------------------------------------------
+// Valida vendedor+token contra a Z25 (hash SHA-256, nunca o token
+// em texto puro). So considera registro ativo (Z25_ATIVO='1').
+// Retorna Nil se nao encontrar - o chamador trata isso explicitamente.
+//-------------------------------------------------------------------
+Static Function ChkTokPDV(cVend as Character, cToken as Character) as Json
+	Local cAlias     := GetNextAlias() as Character
+	Local cQuery     := "" as Character
+	Local oStatement as Object
+	Local cHash      := SHA256(cToken) as Character
+	Local jRet       := Nil as Json
+
+	cQuery := "SELECT Z25.Z25_VEND VEND, RTRIM(A3.A3_NOME) A3NOME, Z25.Z25_FILVEN FILVEN "
+	cQuery += "FROM " + RetSqlName("Z25") + " Z25 "
+	cQuery += "JOIN " + RetSqlName("SA3") + " A3 ON A3.A3_COD = Z25.Z25_VEND AND A3.D_E_L_E_T_ = ' ' "
+	cQuery += "WHERE Z25.D_E_L_E_T_ = ' ' "
+	cQuery += "AND Z25.Z25_VEND = ? "
+	cQuery += "AND Z25.Z25_TOKEN = ? "
+	cQuery += "AND Z25.Z25_ATIVO = '1' "
+
+	oStatement := FWExecStatement():New(ChangeQuery(cQuery))
+	oStatement:SetString(1, cVend)
+	oStatement:SetString(2, cHash)
+
+	cQuery := oStatement:GetFixQuery()
+	DBUseArea(.T., "TOPCONN", TCGenQry(,, cQuery), cAlias, .F., .T.)
+
+	If !(cAlias)->(Eof())
+		jRet := JsonObject():New()
+		jRet["vendedor"] := AllTrim((cAlias)->VEND)
+		jRet["nome"]     := AllTrim((cAlias)->A3NOME)
+		jRet["filial"]   := AllTrim((cAlias)->FILVEN)
+	EndIf
+
+	(cAlias)->(DBCloseArea())
+
+Return jRet
+
+
+//-------------------------------------------------------------------
+// Monta resposta de erro no padrao TTALK. Compartilhada por todos
+// os endpoints REST do PDV Movel.
+//-------------------------------------------------------------------
+Static Function ErroPDV(cCode as Character, cMessage as Character) as Character
+	Local jError := JsonObject():New() as Json
+
+	jError["code"]            := cCode
+	jError["message"]         := cMessage
+	jError["detailedMessage"] := cMessage
+
+Return jError:toJson()

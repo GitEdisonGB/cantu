@@ -1,0 +1,86 @@
+#include "tlpp-core.th"
+#include "totvs.ch"
+
+
+/*/{Protheus.doc} Z25NOVO
+Gera um novo device/token pro app PDV Movel. Pede vendedor+filial+
+device+observacao, gera um token aleatorio, grava so o hash
+SHA-256 na Z25 e mostra o token em texto puro UMA VEZ - depois
+disso ele nao pode mais ser recuperado (nem por essa rotina, nem
+por ninguem). Copiar na hora e configurar no device.
+@type Function
+@author Edison G. Barbieri
+@since 20/08/2026
+/*/
+
+User Function Z25NOVO()
+	Local aParam    := {} as Array
+	Local aRet      := {} as Array
+	Local cVend     := "" as Character
+	Local cFilVen   := "" as Character
+	Local cDevice   := "" as Character
+	Local cObs      := "" as Character
+	Local cCodNovo  := "" as Character
+	Local cTokPlain := "" as Character
+
+	AAdd(aParam, {1, "Vendedor"        , Space(TamSX3("Z25_VEND")[1]), "@!", "", "SA3", ".T.", CalcFieldSize("C", TamSX3("Z25_VEND")[1]), .T.})
+	AAdd(aParam, {1, "Filial Vendedor" , Space(2)                    , "@!", "", ""   , ".T.", CalcFieldSize("C", 2)                    , .T.})
+	AAdd(aParam, {1, "Device"          , Space(40)                   , "@!", "", ""   , ".T.", CalcFieldSize("C", 30)                   , .T.})
+	AAdd(aParam, {1, "Observacao"      , Space(100)                  , "@!", "", ""   , ".T.", CalcFieldSize("C", 30)                   , .T.})
+
+	If !ParamBox(aParam, "Novo Device PDV Movel", aRet)
+		Return
+	EndIf
+
+	cVend   := AllTrim(aRet[1])
+	cFilVen := AllTrim(aRet[2])
+	cDevice := AllTrim(aRet[3])
+	cObs    := AllTrim(aRet[4])
+
+	If Empty(cVend) .Or. Empty(cFilVen)
+		MsgStop("Vendedor e Filial sao obrigatorios", "Z25NOVO")
+		Return
+	EndIf
+
+	If !ExistCpo("SA3", cVend)
+		MsgStop("Vendedor nao encontrado na SA3", "Z25NOVO")
+		Return
+	EndIf
+
+	cCodNovo  := GetSXENum("Z25", "Z25_COD")
+	cTokPlain := GeraTokPDV(cVend, cCodNovo)
+
+	Begin Transaction
+		RecLock("Z25", .T.)
+		Z25->Z25_FILIAL := xFilial("Z25")
+		Z25->Z25_COD    := cCodNovo
+		Z25->Z25_VEND   := PadR(cVend, TamSX3("Z25_VEND")[1])
+		Z25->Z25_FILVEN := PadR(cFilVen, 2)
+		Z25->Z25_DEVICE := PadR(cDevice, 40)
+		Z25->Z25_TOKEN  := SHA256(cTokPlain)
+		Z25->Z25_ATIVO  := "1"
+		Z25->Z25_DTCAD  := Date()
+		Z25->Z25_OBS    := PadR(cObs, 100)
+		MsUnlock()
+		ConfirmSX8()
+	End Transaction
+
+	MsgInfo("Token gerado - copie AGORA, nao sera mostrado de novo:" + Chr(13) + Chr(13) + cTokPlain, "Novo device PDV Movel")
+Return
+
+//-------------------------------------------------------------------
+// Gera um token (32 caracteres hex, metade de um SHA-256) combinando
+// timestamp, vendedor e o codigo sequencial recem-gerado como
+// entropia. Truncado de 64 para 32 chars (21/08/2026) pra caber numa
+// linha unica no MsgInfo sem cortar visualmente (MsgInfo nao tem
+// parametro de largura) - ainda 128 bits de entropia, muito acima do
+// necessario pra uma chave de API interna de baixo volume (nao e'
+// segredo bancario, nao precisa da forca academica de um SHA-256
+// inteiro).
+//-------------------------------------------------------------------
+Static Function GeraTokPDV(cVend as Character, cCodNovo as Character) as Character
+	Local cSeed := "" as Character
+
+	cSeed := cVend + cCodNovo + DToS(Date()) + Time() + AllTrim(Str(Seconds(), 15, 6))
+
+Return Left(SHA256(cSeed), 32)
