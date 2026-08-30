@@ -152,8 +152,6 @@ static function ProcPed(cArq)
 				aadd(aCabPed, {"C5_CONDPAG", cCondPag	,})
 				aadd(aCabPed, {"C5_VEND1"  , "000079"	,})
 				aAdd(aCabPed, {"C5_TRANSP"  , " ", Nil})
-				cNumPed := GetSxeNum("SC5","C5_NUM")
-				aAdd(aCabPed, {"C5_NUM"    , cNumPed,Nil})
 				aAdd(aCabPed, {"C5_OBSPED" , "Pedido com origem IMP PEDIDO DT (ARQUIVO CSV) : " + cArqCSV ,Nil})
 				aAdd(aCabPed, {"C5_X_CLVL" , "001001001",Nil})
 			endif
@@ -230,6 +228,17 @@ static function ProcPed(cArq)
 		return
 	endif
 
+	//Alterado - o numero do pedido passa a ser obtido apenas aqui, imediatamente antes da
+	//gravacao, e validado contra a SC5 - Edison G. Barbieri - Dt.30/08/2026
+	cNumPed := U_GETNUMSX("SC5", "C5_NUM", xFilial("SC5"))
+
+	If Empty(cNumPed)
+		ConOut("IPDDTCSV - NAO FOI POSSIVEL OBTER NUMERO LIVRE PARA O PEDIDO DE VENDA")
+		Return
+	EndIf
+
+	aAdd(aCabPed, {"C5_NUM"    , cNumPed,Nil})
+
 	BEGIN TRANSACTION
 
 
@@ -242,6 +251,13 @@ static function ProcPed(cArq)
 		endif
 
 	END TRANSACTION
+
+	//Alterado - confirma ou devolve o numero reservado no semaforo - Edison G. Barbieri - Dt.30/08/2026
+	If lMsErroAuto
+		RollBackSX8()
+	Else
+		ConfirmSX8()
+	EndIf
 
 	if !lMsErroAuto
 		MSGINFO("Pedido gerado n. " + SC5->C5_NUM," Sucesso")

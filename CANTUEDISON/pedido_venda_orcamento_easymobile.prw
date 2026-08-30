@@ -310,9 +310,6 @@ USER FUNCTION GPDOEASY()
 				aAdd(aCab, {"C5_DTHRALT", DToS(dDataBase) + ' ' + Substr(Time(), 1, 5),Nil})
 				aAdd(aCab, {"C5_X_DTINC", DToS(dDataBase) + ' ' + Substr(Time(), 1, 5),Nil})
 
-				cNumPed := GetSxeNum("SC5","C5_NUM")
-
-				aAdd(aCab, {"C5_NUM"    , cNumPed,Nil})
 				//aAdd(aCab, {"C5_X_TPLIC", "I",Nil})     //-- IFCO
 				aAdd(aCab, {"C5_OBSPED" , "Pedido com origem orçamento Easymobile (Laranginha) orçamento " + cCodorc ,Nil})
 				aAdd(aCab, {"C5_X_CLVL" , "001001001",Nil})
@@ -367,7 +364,25 @@ USER FUNCTION GPDOEASY()
 				SB1->(dbCloseArea())
 				ITENS->(dbCloseArea())
 
+				//Alterado - o numero do pedido passa a ser obtido apenas aqui, imediatamente antes da
+				//gravacao, e validado contra a SC5 - Edison G. Barbieri - Dt.30/08/2026
+				cNumPed := U_GETNUMSX("SC5", "C5_NUM", xFilial("SC5"))
+
+				If Empty(cNumPed)
+					ConOut("ORCAMENTO EASYMOBILE - NAO FOI POSSIVEL OBTER NUMERO LIVRE PARA O PEDIDO DE VENDA")
+					Return
+				EndIf
+
+				aAdd(aCab, {"C5_NUM"    , cNumPed,Nil})
+
 				MSExecAuto({|x,y,z| Mata410(x,y,z)},aCab,aItens,3)
+
+				//Alterado - confirma ou devolve o numero reservado no semaforo - Edison G. Barbieri - Dt.30/08/2026
+				If lMsErroAuto
+					RollBackSX8()
+				Else
+					ConfirmSX8()
+				EndIf
 
 				If lMsErroAuto
 					ConOut("Erro na inclusao!")

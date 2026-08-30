@@ -887,6 +887,11 @@ User Function GERAPDVD()
 	Local aItemLin      := {}
 	Local cCondpg       := "" //Edison . G. Barbieri inicio 18/06/2025
 	Local cCNPJcli       := "" //Edison . G. Barbieri inicio 18/06/2025
+	Local aCabAux       := {}   //Alterado - trata numeracao duplicada - Edison G. Barbieri - Dt.30/08/2026
+	Local nTenta        := 0
+	Local nMaxTenta     := 5
+	Local lIncOk        := .F.
+	Private cNumPv      := ""   //-- usado tambem pela GrvStatus()
 	Private cItemNovo   := PadL("00", Len(SC6->C6_ITEM))
 	Private lMsErroAuto := .F.
 	Private cCGCAnt     := SM0->M0_CGC  //-- CNPJ da empresa posicionada inicialemnte
@@ -924,6 +929,11 @@ User Function GERAPDVD()
 	U_USORWMAKE(ProcName(),FunName())
 
 	cFilAntAux := cFilAnt
+
+	//Alterado - a GrvStatus() marca a E04 por UPDATE direto, o que nao reflete no registro
+	//aberto no browse. Sem reler a situacao do banco, um segundo clique em "Gerar Pedido
+	//Venda" ainda enxerga "N" e gera um pedido duplicado - Edison G. Barbieri - Dt.30/08/2026
+	cSituacao := fSitEdi(cCodneo)
 
 	If cSituacao == "N"
 
@@ -984,8 +994,6 @@ User Function GERAPDVD()
 				aAdd(aCab, {"C5_MENNOTA", "Pedido Cliente: " + E04->E04_CODNEO, Nil})
 			Endif
 
-			cNumPv := GetSxeNum("SC5","C5_NUM")
-
 			if cEmpAnt $ "02/10"
 				cClvl := "003001001"
 			Else
@@ -998,8 +1006,6 @@ User Function GERAPDVD()
 				//Edison G. Barbieri 15/06/23 fim
 
 			Endif
-
-			aAdd(aCab, {"C5_NUM"    ,cNumPv,Nil})
 
 			if cEmpAnt $ "02/10"
 				aAdd(aCab, {"C5_X_TPLIC","5",Nil}) //-- Oesa
@@ -1085,17 +1091,60 @@ User Function GERAPDVD()
 			SBZ->(dbCloseArea())
 			SB1->(dbCloseArea())
 
-			MSExecAuto({|x,y,z| Mata410(x,y,z)},aCab,aItens,3)
+			//Alterado - o numero do pedido passa a ser obtido apenas aqui, imediatamente antes da
+			//inclusao, ja validado contra a SC5, com retentativa quando outro processo consumir o
+			//numero na janela entre o GetSxeNum e o MSExecAuto - Edison G. Barbieri - Dt.30/08/2026
+			While !lIncOk .And. nTenta < nMaxTenta
 
-			If lMsErroAuto
-				MostraErro()
+				nTenta++
+
+				cNumPv := fNumSC5(cFilAntAux)
+
+				If Empty(cNumPv)
+					ConOut("EDINEO - NAO FOI POSSIVEL OBTER NUMERO LIVRE PARA O PEDIDO - EDI " + cCodneo)
+					MsgAlert("Nao foi possivel obter um numero livre para o pedido de venda. Verifique a numeracao (SXE) da SC5.")
+					Exit
+				EndIf
+
+				aCabAux := aClone(aCab)
+				aAdd(aCabAux, {"C5_NUM"    ,cNumPv,Nil})
+
+				lMsErroAuto := .F.
+
+				MSExecAuto({|x,y,z| Mata410(x,y,z)},aCabAux,aItens,3)
+
+				If !lMsErroAuto
+					ConfirmSX8()
+					lIncOk := .T.
+					Exit
+				EndIf
+
+				//-- Devolve o numero reservado e so repete a inclusao quando o erro foi de numeracao
 				RollBackSX8()
-			Else
-				ConfirmSX8()
+
+				If !fPedExis(cFilAntAux, cNumPv)
+					//-- Numero continua livre: o erro nao foi de numeracao, nao adianta repetir
+					Exit
+				EndIf
+
+				//-- Se quem ocupou o numero foi o pedido deste proprio registro do EDI, a gravacao
+				//-- ocorreu apesar do erro devolvido - nao pode ser gerado um segundo pedido
+				If AllTrim(fCotSC5(cFilAntAux, cNumPv)) == AllTrim(cCodneo)
+					lIncOk := .T.
+					Exit
+				EndIf
+
+				ConOut("EDINEO - NUMERO " + cNumPv + " JA UTILIZADO NA FILIAL " + cFilAntAux + " - NOVA TENTATIVA " + cValToChar(nTenta))
+
+			EndDo
+
+			If lIncOk
 				//Grava numero do pedido e atualiza status
 				GrvStatus(cCodneo)
 				ShowHelpDlg("Sucesso! ",{"PEDIDO INCLUIDO COM SUCESSO " + cNumPv},5,{""},5)
-			Endif
+			ElseIf lMsErroAuto
+				MostraErro()
+			EndIf
 
 		EndIf
 
@@ -1115,6 +1164,162 @@ description Atualiza o pedido no EDI neogid e ajusta status
 @version 12.1.25
 /*/
 //-------------------------------------------------------------------
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} fNumSC5
+description Devolve um numero livre para o C5_NUM. Continua usando o semaforo
+            padrao (GetSxeNum), mas quando o numero devolvido ja existir na
+            SC5 ele e confirmado (queimado) e o sequencial avanca, ate achar
+            um numero realmente livre. A reserva do numero devolvido fica
+            PENDENTE - cabe ao chamador executar ConfirmSX8() no sucesso ou
+            RollBackSX8() no erro.
+@author  Edison G. Barbieri
+@since   30/08/2026
+@param   cFilPed, character, filial do pedido de venda
+@return  character, numero livre para o C5_NUM ou vazio quando nao encontrado
+/*/
+//-------------------------------------------------------------------
+Static Function fNumSC5(cFilPed)
+
+	Local cNumRet  := ""
+	Local lAchou   := .F.
+	Local nVolta   := 0
+	Local nLimite  := 999
+
+	While !lAchou .And. nVolta < nLimite
+
+		nVolta++
+
+		cNumRet := GetSxeNum("SC5", "C5_NUM")
+
+		If Empty(cNumRet)
+			Exit
+		EndIf
+
+		If !fPedExis(cFilPed, cNumRet)
+			lAchou := .T.
+		Else
+			//-- Numero ja gravado na SC5: confirma para queimar e avancar o sequencial
+			ConfirmSX8()
+			ConOut("EDINEO - NUMERO " + cNumRet + " JA EXISTE NA SC5 DA FILIAL " + cFilPed + " - AVANCANDO SEQUENCIAL")
+		EndIf
+
+	EndDo
+
+	If !lAchou
+		cNumRet := ""
+	EndIf
+
+Return cNumRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} fPedExis
+description Indica se o numero de pedido informado ja existe na SC5 da filial.
+            Considera tambem registros deletados, para nao reaproveitar numero
+            de pedido excluido que ainda tenha residuo em SC6/SC9.
+@author  Edison G. Barbieri
+@since   30/08/2026
+@param   cFilPed, character, filial do pedido de venda
+@param   cNumPed, character, numero do pedido a verificar
+@return  logical, .T. quando o numero ja esta em uso
+/*/
+//-------------------------------------------------------------------
+Static Function fPedExis(cFilPed, cNumPed)
+
+	Local cQry    := ""
+	Local lExiste := .F.
+
+	cQry += "SELECT COUNT(*) AS QTDPED "
+	cQry += "  FROM " + RetSqlName("SC5") + " SC5 "
+	cQry += " WHERE SC5.C5_FILIAL = '" + cFilPed + "' "
+	cQry += "   AND SC5.C5_NUM    = '" + cNumPed + "' "
+
+	cQry := ChangeQuery(cQry)
+
+	If Select("QRYNUM") > 0
+		QRYNUM->(dbCloseArea())
+	EndIf
+
+	TCQUERY cQry NEW ALIAS "QRYNUM"
+
+	lExiste := (QRYNUM->QTDPED > 0)
+
+	QRYNUM->(dbCloseArea())
+
+Return lExiste
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} fCotSC5
+description Devolve o conteudo do C5_COTACAO do pedido informado. Usado para
+            identificar se o pedido que ocupou o numero e o do proprio
+            registro do EDI que esta sendo processado.
+@author  Edison G. Barbieri
+@since   30/08/2026
+@param   cFilPed, character, filial do pedido de venda
+@param   cNumPed, character, numero do pedido de venda
+@return  character, conteudo do C5_COTACAO ou vazio quando nao localizado
+/*/
+//-------------------------------------------------------------------
+Static Function fCotSC5(cFilPed, cNumPed)
+
+	Local cQry    := ""
+	Local cCotRet := ""
+
+	cQry += "SELECT COALESCE(MAX(SC5.C5_COTACAO), ' ') AS COTPED "
+	cQry += "  FROM " + RetSqlName("SC5") + " SC5 "
+	cQry += " WHERE SC5.C5_FILIAL  = '" + cFilPed + "' "
+	cQry += "   AND SC5.C5_NUM     = '" + cNumPed + "' "
+	cQry += "   AND SC5.D_E_L_E_T_ = ' ' "
+
+	cQry := ChangeQuery(cQry)
+
+	If Select("QRYCOT") > 0
+		QRYCOT->(dbCloseArea())
+	EndIf
+
+	TCQUERY cQry NEW ALIAS "QRYCOT"
+
+	cCotRet := QRYCOT->COTPED
+
+	QRYCOT->(dbCloseArea())
+
+Return cCotRet
+
+//-------------------------------------------------------------------
+/*/{Protheus.doc} fSitEdi
+description Le a situacao do registro do EDI direto do banco. Necessario
+            porque a GrvStatus() grava por UPDATE e o registro aberto no
+            browse continua com o conteudo anterior.
+@author  Edison G. Barbieri
+@since   30/08/2026
+@param   cCodEdi, character, codigo do registro do EDI (E04_COD)
+@return  character, conteudo do E04_SITUA ou vazio quando nao localizado
+/*/
+//-------------------------------------------------------------------
+Static Function fSitEdi(cCodEdi)
+
+	Local cQry    := ""
+	Local cSitRet := ""
+
+	cQry += "SELECT COALESCE(MAX(E04.E04_SITUA), ' ') AS SITEDI "
+	cQry += "  FROM " + RetSqlName("E04") + " E04 "
+	cQry += " WHERE E04.E04_FILIAL = '" + xFilial("E04") + "' "
+	cQry += "   AND E04.E04_COD    = '" + cCodEdi + "' "
+	cQry += "   AND E04.D_E_L_E_T_ = ' ' "
+
+	cQry := ChangeQuery(cQry)
+
+	If Select("QRYSIT") > 0
+		QRYSIT->(dbCloseArea())
+	EndIf
+
+	TCQUERY cQry NEW ALIAS "QRYSIT"
+
+	cSitRet := QRYSIT->SITEDI
+
+	QRYSIT->(dbCloseArea())
+
+Return cSitRet
 
 Static Function GrvStatus(cCodneo)
 
