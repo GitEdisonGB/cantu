@@ -1,0 +1,14 @@
+{
+  "_comentario": "Copie para config.json (que NAO vai pro git) e preencha usuario/senha/token.",
+  "_base_url": "Host do ambiente + porta do REST (8401) + /rest. NAO e a porta de compilacao (7600).",
+  "base_url": "https://cantuoeste192543.protheus.cloudtotvs.com.br:8401/rest",
+  "_auth_basic": "Camada 1: usuario tecnico do Protheus, exigido pelo REST em TODA requisicao.",
+  "usuario_rest": "pdvmovel",
+  "senha_rest": "PREENCHER",
+  "_auth_vendedor": "Camada 2: vendedor + token do device (Z25), enviado no header X-Pdv-Token.",
+  "vendedor": "999999",
+  "token": "TOKEN-DO-DEVICE-EM-TEXTO-PURO",
+  "cnpj_cliente_existente": "99999999000191",
+  "timeout_segundos": 30,
+  "_cnpj": "99999999000191 = cliente ficticio da homologacao NF-e, presente em quase toda base."
+}

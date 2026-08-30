@@ -10,7 +10,7 @@ device, gerado manualmente no onboarding de cada terminal e
 validado contra a tabela Z25 (hash SHA-256, nunca texto puro).
 Confirma o token e devolve os dados que o app precisa guardar
 localmente (vendedor, nome, filial) para usar nas demais chamadas.
-O mesmo token e reenviado como "Authorization: Bearer <token>" em
+O mesmo token e reenviado no header "X-Pdv-Token: <token>" em
 todo endpoint protegido - nao ha sessao/expiracao separada nessa v1.
 Ver C:\spool\decisoes.md secao 3.2 (estrutura da Z25).
 @type Function
@@ -36,8 +36,12 @@ User Function AuthPDV() as Logical
 		Return oRest:setStatusResponse(400, ErroPDV("400", "Corpo JSON invalido"))
 	EndIf
 
-	cVend  := PadR(AllTrim(jBody:GetJsonText("vendedor")), TamSX3("A3_COD")[1])
-	cToken := AllTrim(jBody:GetJsonText("token"))
+	// cValToChar() e obrigatorio aqui: GetJsonText() de chave AUSENTE nao devolve algo
+	// que o Empty() abaixo reconheca - a guarda de campo obrigatorio deixava passar e
+	// o endpoint respondia 401 em vez de 400. Mesmo padrao ja usado em ValCamposCliPDV
+	// (ClientePDV.tlpp), esse sim validado. Corrigido - Edison - Dt.30/08/2026
+	cVend  := PadR(AllTrim(cValToChar(jBody:GetJsonText("vendedor"))), TamSX3("A3_COD")[1])
+	cToken := AllTrim(cValToChar(jBody:GetJsonText("token")))
 
 	If Empty(AllTrim(cVend)) .Or. Empty(cToken)
 		oRest:setKeyHeaderResponse("Content-Type", "application/json")

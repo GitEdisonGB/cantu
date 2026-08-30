@@ -56,6 +56,8 @@ User Function VendaPDV() as Logical
 	Local jCli      := Nil as Json
 	Local jResp     := JsonObject():New() as Json
 	Local cNumOrc   := "" as Character
+	Local jRespErr  := Nil as Json
+	Private cErroVendaPDV := "" as Character
 
 	jSessao := BearPDV()
 	If jSessao == Nil
@@ -114,14 +116,25 @@ User Function VendaPDV() as Logical
 			cNumOrc := GravaOrcPDV(jSessao["vendedor"], jSessao["filial"], jCli, aItensReq, cTipo, cObs)
 		EndIf
 	Catch oError
+		// Alterado (30/08/2026, Edison G. Barbieri) - devolve oError:Description
+		// no detailedMessage (mesmo padrao do ClientePDV.tlpp/InclCliPDV) - antes
+		// descartava o erro real, dificultando diagnostico de falha ao vivo.
 		FWLogMsg("ERROR", , "REST", "VendaPDV", , "01", oError:Description, 0, 0, {})
+		jRespErr := JsonObject():New()
+		jRespErr["code"]            := "500"
+		jRespErr["message"]         := "Erro interno ao gravar venda"
+		jRespErr["detailedMessage"] := oError:Description
 		oRest:setKeyHeaderResponse("Content-Type", "application/json")
-		Return oRest:setStatusResponse(500, ErroPDV("500", "Erro interno ao gravar venda"))
+		Return oRest:setStatusResponse(500, jRespErr:toJson())
 	EndTry
 
 	If Empty(cNumOrc)
+		jRespErr := JsonObject():New()
+		jRespErr["code"]            := "500"
+		jRespErr["message"]         := "Falha ao gravar venda no Protheus"
+		jRespErr["detailedMessage"] := cErroVendaPDV
 		oRest:setKeyHeaderResponse("Content-Type", "application/json")
-		Return oRest:setStatusResponse(500, ErroPDV("500", "Falha ao gravar venda no Protheus"))
+		Return oRest:setStatusResponse(500, jRespErr:toJson())
 	EndIf
 
 	jResp["numeroOrcamento"] := cNumOrc
@@ -402,19 +415,23 @@ Static Function GravaOrcPDV(cVend as Character, cFilVend as Character, jCli as J
 			MSExecAuto({|a,b,c,d,e,f,g,h| Loja701(a,b,c,d,e,f,g,h)}, .F., 3, "", "", {}, aCab, aItens, aForma)
 		EndIf
 
+		// Alterado (30/08/2026, Edison G. Barbieri) - RollBackSX8/ConfirmSX8 e
+		// MostraErro() sem argumentos, na MESMA ordem/estrutura exata do
+		// precedente real RJLOJP02.PRW (linhas 459-473): RollBackSX8() e
+		// DisarmTransaction() ANTES do MostraErro() zero-arg, tudo DENTRO da
+		// transacao - achado real: MostraErro(path,arquivo) como no
+		// ClientePDV.tlpp (CRMA980) voltou vazio aqui (LOJA701), diferente do
+		// precedente que usa a forma sem argumentos.
 		If lMsErroAuto
+			RollBackSX8()
 			DisarmTransaction()
+			cErroVendaPDV := MostraErro()
 			cNumSeq := ""
+		Else
+			ConfirmSX8()
 		EndIf
 
 	End Transaction
-
-	// Alterado - confirma ou devolve o numero reservado no semaforo - Edison G. Barbieri - Dt.30/08/2026
-	If lMsErroAuto
-		RollBackSX8()
-	Else
-		ConfirmSX8()
-	EndIf
 
 	cFilAnt := cFilAntBkp
 

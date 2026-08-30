@@ -131,8 +131,23 @@ User Function InclCliPDV() as Logical
 		Return oRest:setStatusResponse(500, jResp:toJson())
 	EndIf
 
-	jResp["codigo"] := cCodNovo
-	jResp["loja"]   := "01"
+	// Recarrega o codigo/loja REAIS gravados na SA1 - achado real
+	// (30/08/2026): o CRMA980 pode gerar/normalizar um A1_COD diferente do
+	// que foi enviado no vetor (ex: PF vira o proprio numero do CPF, nao o
+	// GetSxeNum enviado), e A1_LOJA vira "0001" em vez de "01". Devolver
+	// cCodNovo/"01" direto pro app estava incorreto - a busca por
+	// CPF/CNPJ (BuscaCliPDV, ja usada no GET) pega o valor real gravado.
+	jCli := BuscaCliPDV(cDoc)
+	If jCli == Nil
+		jResp := JsonObject():New()
+		jResp["code"]    := "500"
+		jResp["message"] := "Cliente gravado mas nao localizado na releitura por CPF/CNPJ"
+		oRest:setKeyHeaderResponse("Content-Type", "application/json")
+		Return oRest:setStatusResponse(500, jResp:toJson())
+	EndIf
+
+	jResp["codigo"] := jCli["codigo"]
+	jResp["loja"]   := jCli["loja"]
 	jResp["nome"]   := AllTrim(cValToChar(jBody:GetJsonText("nome")))
 
 	// Dispara o mesmo workflow de validacao fiscal que o JOBEASYF.prw
@@ -142,9 +157,10 @@ User Function InclCliPDV() as Logical
 	// veio do PDV Movel sem precisar decodificar A1_USERLGI. NAO mexe no
 	// JOBEASYF.prw - so replica o mesmo template/destinatarios. Falha no
 	// envio nao derruba a resposta 201 (cliente ja foi gravado com
-	// sucesso) - so loga o erro.
+	// sucesso) - so loga o erro. Usa codigo/loja REAIS (jCli), nao
+	// cCodNovo/"01" (achado real acima).
 	Try
-		EnviaWfValidFiscalPDV(cCodNovo, "01", AllTrim(cValToChar(jBody:GetJsonText("nome"))))
+		EnviaWfValidFiscalPDV(jCli["codigo"], jCli["loja"], AllTrim(cValToChar(jBody:GetJsonText("nome"))))
 	Catch oErrorWf
 		FWLogMsg("ERROR", , "REST", "InclCliPDV", , "02", oErrorWf:Description, 0, 0, {})
 	EndTry
@@ -153,13 +169,20 @@ User Function InclCliPDV() as Logical
 Return oRest:setStatusResponse(201, jResp:toJson())
 
 //-------------------------------------------------------------------
-// Dispara o workflow de validacao fiscal (TWFProcess) pro cliente
-// recem-criado via PDV Movel - MESMO template/destinatarios que o job
-// JOBEASYF.prw ja usa pros clientes vindos do Easy Mobile (so troca o
-// texto do assunto). Tambem marca A1_CGC_SO3="S" na SA1, pra manter
-// consistente com aquele job (evita ele reavaliar esse mesmo cliente
-// depois - decodificaria A1_USERLGI, nao acharia "plentech", e
-// marcaria "N" sem necessidade). NAO mexe no JOBEASYF.prw - so replica.
+//-------------------------------------------------------------------
+// Dispara o mesmo workflow de validacao fiscal (TWFProcess) pro cliente
+// recem-criado via PDV Movel - MESMA chave/destinatarios que o job
+// JOBEASYF.prw ja usa pros clientes vindos do Easy Mobile. Template HTML
+// PROPRIO ("pdvmovel_valfiscal.html", copia ajustada do "jobeasyf_new.html"
+// - achado real 30/08/2026, usuario recebeu o e-mail de teste e o texto
+// fixo do template mencionava "EasyMobile/Laranjinha"/"rotina JOBEASYF",
+// errado pro PDV Movel; nao dava pra so trocar o assunto). NAO marca
+// A1_CGC_SO3 (pedido explicito do usuario 30/08/2026) - esse campo e'
+// usado pelo JOBEASYF.prw pra decidir se reavalia um cliente vindo do
+// Easy Mobile; mexer nele aqui interferiria naquele job. Aqui a inclusao
+// ja e' validada direto pelo sucesso do ExecAuto (CRMA980) - so dispara
+// o workflow. NAO mexe no JOBEASYF.prw nem no jobeasyf_new.html - so
+// replica a mesma estrutura.
 //-------------------------------------------------------------------
 Static Function EnviaWfValidFiscalPDV(cCodCli as Character, cLojaCli as Character, cNomeCli as Character)
 	Local oProcess    as Object
@@ -172,7 +195,7 @@ Static Function EnviaWfValidFiscalPDV(cCodCli as Character, cLojaCli as Characte
 	cEmailFisc := "suporte@cantu.com.br"
 
 	oProcess := TWFProcess():New("JOBEASYF", "VALIDACAO FISCAL - CLIENTE PDV MOVEL")
-	oProcess:NewTask("JOBEASYF", "\workflow\jobeasyf_new.html")
+	oProcess:NewTask("JOBEASYF", "\workflow\pdvmovel_valfiscal.html")
 	oProcess:cSubject := "Cliente PDV Movel pendente de validacao fiscal - " + cNomeCli
 	oHTML := oProcess:oHTML
 	oHtml:ValByName("COD_CLI", cCodCli)
@@ -182,16 +205,6 @@ Static Function EnviaWfValidFiscalPDV(cCodCli as Character, cLojaCli as Characte
 	oProcess:cTo := cEmailFisc
 	oProcess:Start()
 	oProcess:Finish()
-
-	dbSelectArea("SA1")
-	SA1->(DbSetOrder(1))
-	// PadR defensivo (achado real da revisao 30/08/2026) - cCodCli/
-	// cLojaCli podem vir sem o tamanho exato do indice.
-	If SA1->(DbSeek(xFilial("SA1") + PadR(cCodCli, TamSX3("A1_COD")[1]) + PadR(cLojaCli, TamSX3("A1_LOJA")[1])))
-		RecLock("SA1", .F.)
-		SA1->A1_CGC_SO3 := "S"
-		MsUnlock()
-	EndIf
 
 Return
 
@@ -253,6 +266,9 @@ Return lRet
 // vem logo apos A1_EST; A1_MUN/A1_COD_MUN vem so' depois de A1_CEP).
 // Revertido pra ordem exata do precedente - NAO reordenar de novo sem
 // reconferir contra o fonte real (mesma licao ja documentada acima).
+// CAUSA RAIZ REAL final do A1_INSCR (confirmada 30/08/2026, ver comentario
+// dentro da funcao): GetJsonText() retorna a string "null" pra chave
+// ausente, nao Nil/"" - corrigido.
 //-------------------------------------------------------------------
 Static Function GravaCliPDV(cDoc as Character, jBody as Json, cVend as Character, cFilVend as Character) as Character
 	Local aVetor    := {} as Array
@@ -369,13 +385,11 @@ Return cCodNovo
 // COMPARTILHADA (sem segregacao por filial, X2_ARQUIVO="CC2CMP"). SQL
 // sem filtro de filial (mesmo padrao real de
 // INTEGRACAO MDF CTE\HiveCte.prw, funcao HVGetCodMun).
-// HIPOTESE em teste (29/08/2026, ainda nao confirmada ao vivo): no
-// vetor do ExecAuto, A1_COD_MUN precisa vir DEPOIS de A1_EST - o
-// CRMA980 pode validar campos NA ORDEM do array, entao validar
-// A1_COD_MUN antes de A1_EST estar setado faria a busca interna dele
-// (CC2 ordem 1, FILIAL+EST+CODMUN) rodar com EST vazio e falhar, mesmo
-// o codigo estando certo (busca isolada via DiagCC2PDV.tlpp confirmou
-// que o dado/indice em si estao OK - ver decisoes.md secao 6.2).
+// CONFIRMADO (29/08/2026, ver decisoes.md secao 6.2): no vetor do
+// ExecAuto, A1_COD_MUN precisa vir DEPOIS de A1_EST - o CRMA980 valida
+// campos NA ORDEM do array, entao validar A1_COD_MUN antes de A1_EST
+// estar setado faria a busca interna dele (CC2 ordem 1, FILIAL+EST+
+// CODMUN) rodar com EST vazio e falhar, mesmo o codigo estando certo.
 // Retorna "" se nao encontrar (nao bloqueia a inclusao).
 //-------------------------------------------------------------------
 Static Function BuscaCodMunPDV(cUf as Character, cMunicipio as Character) as Character

@@ -2,3 +2,11 @@
 relatorio_*.html
 relatorio_*.pdf
 .playwright-mcp/
+
+# Config local dos testes de API (contem token de device - nunca versionar)
+PDVMOVEL/testes/config.json
+__pycache__/
+
+# Artefatos de compilacao (appre/secure compile) - nunca versionar
+*.ppo
+*.ppx_*
