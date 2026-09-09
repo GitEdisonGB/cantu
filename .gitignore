@@ -10,3 +10,7 @@ __pycache__/
 # Artefatos de compilacao (appre/secure compile) - nunca versionar
 *.ppo
 *.ppx_*
+
+# Cache/config auto-gerados pela extensao TDS-VSCode - regeneram sozinhos
+.vscode/.advpl/
+.github/instructions/
