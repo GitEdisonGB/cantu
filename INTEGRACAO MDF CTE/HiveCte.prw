@@ -790,6 +790,8 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Local nField        := 0
 	Local nOpc          := 0
 	Local cAliasDbg     := ""
+	Local cCfAtual      := ""
+	Local cCfCorreto    := ""
 	Local oTES          := Nil
 	Local jValores      := Nil
 	Local jIcms         := Nil
@@ -811,6 +813,10 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 	Local cSegUsar      := ""
 	Local cTipoUsar     := "N"
 	Local lChkTrbGen    := .F.
+	Local cDocF2        := ""
+	Local cSerieF2      := ""
+	Local cLojaF2       := ""
+	Local cClienteF2    := ""
 	Private lAutoErrNoFile := .T.
 	Private lMsErroAuto    := .F.
 	Private lComplemento   := .F.
@@ -936,6 +942,13 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 		AAdd(ATail(aSD2), {"D2_TES",    cTesUsar,                                                     Nil})
 		AAdd(ATail(aSD2), {"D2_CLVL",   cSegUsar,                                                     Nil})
 		AAdd(ATail(aSD2), {"D2_CCUSTO", cCC,                                                          Nil})
+		// O motor fiscal decide CFOP mesma/outra UF comparando NF_UFDEST com a UF
+		// cadastrada da FILIAL (nao com a UF de inicio do proprio CT-e) - diverge
+		// quando a UF onde a transportadora esta cadastrada difere de onde ela
+		// efetivamente presta o servico (comum na Baru, cadastrada em SC mas atua
+		// em varios estados). CFOP do CT-e ja vem autorizado pela SEFAZ na API -
+		// informar direto evita essa divergencia.
+		AAdd(ATail(aSD2), {"D2_CF",     PadR(AllTrim(cValToChar(jCte["cfop"])), TamSX3("D2_CF")[1]), Nil})
 
 		If lComplemento
 			AAdd(ATail(aSD2), {"D2_NFORI",   cDocOri,                                                 Nil})
@@ -995,6 +1008,53 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			SF2->F2_CMUNDE := Right(cMunDesHV, TamSX3("F2_CMUNDE")[1])
 			SF2->(MsUnlock())
 
+			cDocF2     := aSF2[AScan(aSF2, {|x| x[1] == "F2_DOC"})][2]
+			cSerieF2   := aSF2[AScan(aSF2, {|x| x[1] == "F2_SERIE"})][2]
+			cLojaF2    := aSF2[AScan(aSF2, {|x| x[1] == "F2_LOJA"})][2]
+			cClienteF2 := aSF2[AScan(aSF2, {|x| x[1] == "F2_CLIENTE"})][2]
+
+			cAliasDbg := GetNextAlias()
+			BeginSQL Alias cAliasDbg
+				SELECT D2_CF, D2_TES
+				FROM %Table:SD2% SD2
+				WHERE D2_FILIAL  = %XFilial:SD2%
+				  AND D2_DOC     = %Exp:cDocF2%
+				  AND D2_SERIE   = %Exp:cSerieF2%
+				  AND SD2.%NotDel%
+			EndSQL
+			cCfAtual := ""
+			If !(cAliasDbg)->(EOF())
+				cCfAtual := (cAliasDbg)->D2_CF
+				LogHV("DEBUG CFOP POS-GRAVACAO: D2_CF=" + cCfAtual + " D2_TES=" + (cAliasDbg)->D2_TES + ;
+					" cUFIni=" + cUFIni + " cUFFim=" + cUFFim)
+			EndIf
+			(cAliasDbg)->(DBCloseArea())
+
+			// Complemento (TES fixa via CC_TESCPL) as vezes sai com o CFOP "mesmo
+			// estado" mesmo quando origem e destino diferem - o motor fiscal parece
+			// usar a UF do cliente/tomador em vez da UF real de destino do CT-e pra
+			// decidir o CFOP nesse fluxo. Convencao fiscal: 1o digito 5=mesmo estado,
+			// 6=outro estado - recalcula e corrige se necessario.
+			If lComplemento .And. !Empty(cCfAtual)
+				If cUFIni == cUFFim
+					cCfCorreto := "5" + SubStr(AllTrim(cCfAtual), 2, 3)
+				Else
+					cCfCorreto := "6" + SubStr(AllTrim(cCfAtual), 2, 3)
+				EndIf
+				If AllTrim(cCfAtual) != cCfCorreto
+					TCSQLExec("UPDATE " + RetSQLName("SD2") + " SET D2_CF = " + ValToSQL(PadR(cCfCorreto, TamSX3("D2_CF")[1])) + ;
+						" WHERE D2_FILIAL = " + ValToSQL(XFilial("SD2")) + " AND D2_DOC = " + ValToSQL(cDocF2) + ;
+						" AND D2_SERIE = " + ValToSQL(cSerieF2) + " AND D_E_L_E_T_ = ' '")
+					TCSQLExec("UPDATE " + RetSQLName("SF3") + " SET F3_CFO = " + ValToSQL(PadR(cCfCorreto, TamSX3("F3_CFO")[1])) + ;
+						" WHERE F3_NFISCAL = " + ValToSQL(cDocF2) + " AND F3_SERIE = " + ValToSQL(cSerieF2) + ;
+						" AND F3_LOJA = " + ValToSQL(cLojaF2) + " AND D_E_L_E_T_ = ' '")
+					TCSQLExec("UPDATE " + RetSQLName("SFT") + " SET FT_CFOP = " + ValToSQL(PadR(cCfCorreto, TamSX3("FT_CFOP")[1])) + ;
+						" WHERE FT_FILIAL = " + ValToSQL(XFilial("SFT")) + " AND FT_NFISCAL = " + ValToSQL(cDocF2) + ;
+						" AND FT_SERIE = " + ValToSQL(cSerieF2) + " AND FT_LOJA = " + ValToSQL(cLojaF2) + " AND D_E_L_E_T_ = ' '")
+					LogHV("CORRECAO AUTOMATICA CFOP: " + AllTrim(cCfAtual) + " -> " + cCfCorreto + " (SD2/SF3/SFT)")
+				EndIf
+			EndIf
+
 			oJSF2 := JSONObject():New()
 			For nField := 1 To SF2->(FCount())
 				oJSF2[AllTrim(SF2->(FieldName(nField)))] := SF2->(FieldGet(nField))
@@ -1007,9 +1067,9 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 				SELECT FT_BASEICM, FT_ALIQICM, FT_VALICM, FT_VALCONT
 				FROM %Table:SFT% SFT
 				WHERE FT_FILIAL   = %XFilial:SFT%
-				  AND FT_NFISCAL  = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_DOC"})][2]%
-				  AND FT_SERIE    = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_SERIE"})][2]%
-				  AND FT_LOJA     = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_LOJA"})][2]%
+				  AND FT_NFISCAL  = %Exp:cDocF2%
+				  AND FT_SERIE    = %Exp:cSerieF2%
+				  AND FT_LOJA     = %Exp:cLojaF2%
 				  AND SFT.%NotDel%
 			EndSQL
 			If !(cAliasDbg)->(EOF())
@@ -1038,10 +1098,10 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 			BeginSQL Alias cAliasDbg
 				SELECT F3_BASEICM
 				FROM %Table:SF3% SF3
-				WHERE F3_NFISCAL  = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_DOC"})][2]%
-				  AND F3_SERIE    = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_SERIE"})][2]%
-				  AND F3_LOJA     = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_LOJA"})][2]%
-				  AND F3_CLIEFOR  = %Exp:aSF2[AScan(aSF2, {|x| x[1] == "F2_CLIENTE"})][2]%
+				WHERE F3_NFISCAL  = %Exp:cDocF2%
+				  AND F3_SERIE    = %Exp:cSerieF2%
+				  AND F3_LOJA     = %Exp:cLojaF2%
+				  AND F3_CLIEFOR  = %Exp:cClienteF2%
 				  AND SF3.%NotDel%
 			EndSQL
 			If !(cAliasDbg)->(EOF()) .And. (cAliasDbg)->F3_BASEICM == 0 .And. nPICMSHV > 0
@@ -1061,6 +1121,12 @@ Static Function ManCTeHV(oJClient, oJSF2, jCte, cUFIni, cUFFim, cError, cFilHV)
 				DisarmTransaction()
 			EndIf
 		EndIf
+
+		// MaFisIni() guarda estado do TES/CFOP/UF na thread - sem MaFisEnd() aqui,
+		// esse estado podia vazar pro proximo documento do loop (IntCTeHV processa
+		// varios CT-es na mesma thread), causando falha intermitente (mesmo CT-e
+		// ora sai com CFOP/base certos, ora nao, sem mudar nada no dado de entrada).
+		MaFisEnd()
 	EndIf
 	EndTran()
 
@@ -1110,6 +1176,10 @@ Static Function GetTESHV(jCte, cUFIni, cUFFim)
 
 	oTES["uf"]     := cUF
 	oTES["codigo"] := cTES
+
+	LogHV("DEBUG CFOP-UF: SM0_EMP=" + SM0->M0_CODIGO + " SM0_FIL=" + SM0->M0_CODFIL + ;
+		" cUFEmit=" + cUFEmit + " cUFIni=" + cUFIni + " cUFFim=" + cUFFim + ;
+		" cUF(resultado)=" + cUF + " cfopCTe=" + AllTrim(cValToChar(jCte["cfop"])) + " TES=" + cTES)
 
 Return oTES
 

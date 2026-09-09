@@ -65,10 +65,17 @@ User Function VendaPDV() as Logical
 		Return oRest:setStatusResponse(401, ErroPDV("401", "Token invalido ou ausente"))
 	EndIf
 
+	// DIAGNOSTICO TEMPORARIO (01/09/2026) - REMOVER apos o teste. Rastro
+	// cumulativo de checkpoints - sempre incluido na resposta de erro (400/
+	// 401 continuam sem detalhe, so 500 usa isso), pra ver ate onde a
+	// execucao chegou independente de qual ponto falhar.
+	cErroVendaPDV := "T1_AUTH_OK"
+
 	If jBody:fromJson(cBody) <> Nil
 		oRest:setKeyHeaderResponse("Content-Type", "application/json")
 		Return oRest:setStatusResponse(400, ErroPDV("400", "Corpo JSON invalido"))
 	EndIf
+	cErroVendaPDV += "|T2_BODY_OK"
 
 	cCliente  := AllTrim(cValToChar(jBody:GetJsonText("cliente")))
 	cTipo     := Upper(AllTrim(cValToChar(jBody:GetJsonText("tipo"))))
@@ -108,6 +115,7 @@ User Function VendaPDV() as Logical
 		oRest:setKeyHeaderResponse("Content-Type", "application/json")
 		Return oRest:setStatusResponse(400, ErroPDV("400", "Cliente nao cadastrado - cadastre antes de vender"))
 	EndIf
+	cErroVendaPDV += "|T3_CLIENTE_OK:" + jCli["codigo"] + "/" + jCli["loja"]
 
 	Try
 		If cTipo == "PEDIDO"
@@ -123,7 +131,7 @@ User Function VendaPDV() as Logical
 		jRespErr := JsonObject():New()
 		jRespErr["code"]            := "500"
 		jRespErr["message"]         := "Erro interno ao gravar venda"
-		jRespErr["detailedMessage"] := oError:Description
+		jRespErr["detailedMessage"] := cErroVendaPDV + "|CATCH:" + oError:Description
 		oRest:setKeyHeaderResponse("Content-Type", "application/json")
 		Return oRest:setStatusResponse(500, jRespErr:toJson())
 	EndTry
@@ -312,6 +320,7 @@ Static Function GravaOrcPDV(cVend as Character, cFilVend as Character, jCli as J
 	Local cNumSeq    := "" as Character
 	Local cVendPad   := PadR(cVend, TamSX3("A3_COD")[1]) as Character
 	Local jProd      := Nil as Json
+	cErroVendaPDV += "|T4_ENTROU_GRAVAORCPDV"
 
 	// Resolve produto+preco (tabela 777) de todos os itens ANTES de abrir
 	// a transacao - evita dar Return no meio de um Begin/End Transaction.
@@ -321,6 +330,7 @@ Static Function GravaOrcPDV(cVend as Character, cFilVend as Character, jCli as J
 
 		jProd := BuscaProdPDV(cCodProd, cFilVend)
 		If jProd == Nil
+			cErroVendaPDV += "|T5_PRODUTO_NAO_ACHADO:cCodProd=[" + cCodProd + "]cFilVend=[" + cFilVend + "]cFilAntAtual=[" + cFilAnt + "]"
 			Return ""
 		EndIf
 
@@ -360,78 +370,115 @@ Static Function GravaOrcPDV(cVend as Character, cFilVend as Character, jCli as J
 		aAdd(aItemLin, {"LR_FILRES" , PadR(cFilVend, 2), NIL})
 		aAdd(aItens, aItemLin)
 	Next nI
+	cErroVendaPDV += "|T6_ITENS_OK:qtd=" + cValToChar(Len(aItens))
 
 	cFilAnt := PadR(cFilVend, 2)
+	cErroVendaPDV += "|T7_FILIAL_TROCADA:" + cFilAnt
 
-	Begin Transaction
+	Try
+		Begin Transaction
 
-		// Alterado - numero validado contra SL1 e SLQ - Edison G. Barbieri - Dt.30/08/2026
-		cNumSeq := U_GETNUMSX("SL1", "L1_NUM", xFilial("SL1"), {{"SL1", "L1_NUM"}, {"SLQ", "LQ_NUM"}}) // sic - mesmo padrao real de RJLOJP02.PRW (SIGALOJA), LQ_NUM compartilha sequencia com L1_NUM
+			// Alterado (02/09/2026, Edison G. Barbieri) - troca do U_GETNUMSX
+			// (GetSxeNum/semaforo, contador fora de sincronia com o volume real
+			// de SL1 - 73mil registros na filial 04) pelo U_L1NUMBER()
+			// (EASYMOBILE\L1NUMBER.PRW), a MESMA funcao ja usada em producao
+			// pelo Easy Mobile e pela exportacao de pedido pro caixa
+			// (SIGAFAT\PedidoParaOrcamento2.prw) - pega MAX(L1_NUM) real da
+			// filial + Soma1(), sem depender do Configurador. Retry via
+			// dbSeek replica exatamente PedidoParaOrcamento2.prw:385-391.
+			cNumSeq := U_L1NUMBER()
+			dbSelectArea("SL1")
+			SL1->(DbSetOrder(1))
+			SL1->(DbGoTop())
+			While SL1->(DbSeek(xFilial("SL1") + cNumSeq))
+				cNumSeq := GetSxeNum("SL1", "L1_NUM")
+				SL1->(DbGoTop())
+			EndDo
+			cErroVendaPDV += "|T8_NUMSEQ:[" + cNumSeq + "]"
 
-		aAdd(aCab, {"LQ_NUM"     , cNumSeq       , NIL})
-		aAdd(aCab, {"LQ_VEND"    , cVendPad      , NIL})
-		aAdd(aCab, {"LQ_COMIS"   , 0             , NIL})
-		aAdd(aCab, {"LQ_CLIENTE" , jCli["codigo"], NIL})
-		aAdd(aCab, {"LQ_LOJA"    , jCli["loja"]  , NIL})
-		aAdd(aCab, {"LQ_TIPOCLI" , jCli["tipo"]  , NIL})
-		aAdd(aCab, {"LQ_DESCONT" , 0             , NIL})
-		aAdd(aCab, {"LQ_DTLIM"   , Date()        , NIL})
-		aAdd(aCab, {"LQ_EMISSAO" , Date()        , NIL})
-		aAdd(aCab, {"LQ_CONDPG"  , "001"         , NIL})
-		aAdd(aCab, {"LQ_NUMMOV"  , "1 "          , NIL})
-		aAdd(aCab, {"LQ_MENNOTA" , cObs          , NIL})
-		// LQ_IMPNF/LQ_SITUA seguem o padrao real do CANTU.js
-		// (PE_GERORC_ANTES_GERORC) - .F. quando vira NFC-e na hora (nao
-		// gera "NF" tradicional separada), .T. no orcamento simples.
-		// LQ_SITUA='RX' e' fixo no CANTU.js independente do tipo.
-		If cTipo == "NFCE"
-			lImpNF := .F.
-		Else
-			lImpNF := .T.
-		EndIf
-		aAdd(aCab, {"LQ_IMPNF"   , lImpNF        , NIL})
-		aAdd(aCab, {"LQ_SITUA"   , "RX"          , NIL})
+			aAdd(aCab, {"LQ_NUM"     , cNumSeq       , NIL})
+			aAdd(aCab, {"LQ_VEND"    , cVendPad      , NIL})
+			// TESTE TEMPORARIO (02/09/2026) - forcar LQ_OPERADO direto no aCab pra
+			// confirmar se o Loja701 aceita/persiste (nenhum precedente real -
+			// RJLOJP02.PRW nem MyLOJA701.prw - passa esse campo; L1_OPERADO em
+			// faturados reais do Easy Mobile vem preenchido, ex. "CS8" (SLF400
+			// filial 04), mas parece resolvido internamente pela sessao RPC, nao
+			// pelo aCab. Usando "CS8" (codigo real valido) so pra confirmar se
+			// pega - REMOVER/trocar por valor da Z25 depois de confirmado.
+			aAdd(aCab, {"LQ_OPERADO" , "CS8"          , NIL})
+			aAdd(aCab, {"LQ_ESTACAO", "004"          , NIL}) // PDVMOVEL (dedicada) em vez de 003 (EasyMobile) - pedido do usuario
+			aAdd(aCab, {"LQ_COMIS"   , 0             , NIL})
+			aAdd(aCab, {"LQ_CLIENTE" , jCli["codigo"], NIL})
+			aAdd(aCab, {"LQ_LOJA"    , jCli["loja"]  , NIL})
+			aAdd(aCab, {"LQ_TIPOCLI" , jCli["tipo"]  , NIL})
+			aAdd(aCab, {"LQ_DESCONT" , 0             , NIL})
+			aAdd(aCab, {"LQ_DTLIM"   , Date()        , NIL})
+			aAdd(aCab, {"LQ_EMISSAO" , Date()        , NIL})
+			aAdd(aCab, {"LQ_CONDPG"  , "001"         , NIL})
+			aAdd(aCab, {"LQ_NUMMOV"  , "1 "          , NIL})
+			aAdd(aCab, {"LQ_MENNOTA" , cObs          , NIL})
+			// LQ_IMPNF/LQ_SITUA seguem o padrao real do CANTU.js
+			// (PE_GERORC_ANTES_GERORC) - .F. quando vira NFC-e na hora (nao
+			// gera "NF" tradicional separada), .T. no orcamento simples.
+			// LQ_SITUA='RX' e' fixo no CANTU.js independente do tipo.
+			If cTipo == "NFCE"
+				lImpNF := .F.
+			Else
+				lImpNF := .T.
+			EndIf
+			aAdd(aCab, {"LQ_IMPNF"   , lImpNF        , NIL})
+			aAdd(aCab, {"LQ_SITUA"   , "RX"          , NIL})
 
-		aAdd(aForma, {})
-		aAdd(aForma[Len(aForma)], {"L4_DATA"   , Date(), NIL})
-		aAdd(aForma[Len(aForma)], {"L4_VALOR"  , nTotVenda, NIL})
-		aAdd(aForma[Len(aForma)], {"L4_FORMA"  , "R$ ", NIL})
-		aAdd(aForma[Len(aForma)], {"L4_ADMINIS", " ", NIL})
-		aAdd(aForma[Len(aForma)], {"L4_NUMCART", " ", NIL})
-		aAdd(aForma[Len(aForma)], {"L4_FORMAID", " ", NIL})
-		aAdd(aForma[Len(aForma)], {"L4_MOEDA"  , 0, NIL})
+			aAdd(aForma, {})
+			aAdd(aForma[Len(aForma)], {"L4_DATA"   , Date(), NIL})
+			aAdd(aForma[Len(aForma)], {"L4_VALOR"  , nTotVenda, NIL})
+			aAdd(aForma[Len(aForma)], {"L4_FORMA"  , "R$ ", NIL})
+			aAdd(aForma[Len(aForma)], {"L4_ADMINIS", " ", NIL})
+			aAdd(aForma[Len(aForma)], {"L4_NUMCART", " ", NIL})
+			aAdd(aForma[Len(aForma)], {"L4_FORMAID", " ", NIL})
+			aAdd(aForma[Len(aForma)], {"L4_MOEDA"  , 0, NIL})
 
-		lMsHelpAuto := .T.
-		lMsErroAuto := .F.
+			lMsHelpAuto := .T.
+			lMsErroAuto := .F.
 
-		SetFunName("LOJA701")
-		// "NFCE" finaliza e emite na hora (cCallRot="VA" = Venda Assistida,
-		// confirmado no comentario real de EASYMOBILE/MyLOJA701.prw: gera
-		// Cupom/NFC-e/SAT). "ORCAMENTO" so grava o rascunho, sem cCallRot -
-		// mesmo padrao exato do precedente real RJLOJP02.PRW (producao).
-		If cTipo == "NFCE"
-			MSExecAuto({|a,b,c,d,e,f,g,h,i,j,k| Loja701(a,b,c,d,e,f,g,h,i,j,k)}, .F., 3, "", "", {}, aCab, aItens, aForma, Nil, Nil, "VA")
-		Else
-			MSExecAuto({|a,b,c,d,e,f,g,h| Loja701(a,b,c,d,e,f,g,h)}, .F., 3, "", "", {}, aCab, aItens, aForma)
-		EndIf
+			SetFunName("LOJA701")
+			cErroVendaPDV += "|T9_ANTES_EXECAUTO"
+			// "NFCE" finaliza e emite na hora (cCallRot="VA" = Venda Assistida,
+			// confirmado no comentario real de EASYMOBILE/MyLOJA701.prw: gera
+			// Cupom/NFC-e/SAT). "ORCAMENTO" so grava o rascunho, sem cCallRot -
+			// mesmo padrao exato do precedente real RJLOJP02.PRW (producao).
+			If cTipo == "NFCE"
+				MSExecAuto({|a,b,c,d,e,f,g,h,i,j,k| Loja701(a,b,c,d,e,f,g,h,i,j,k)}, .F., 3, "", "", {}, aCab, aItens, aForma, Nil, Nil, "VA")
+			Else
+				MSExecAuto({|a,b,c,d,e,f,g,h| Loja701(a,b,c,d,e,f,g,h)}, .F., 3, "", "", {}, aCab, aItens, aForma)
+			EndIf
+			cErroVendaPDV += "|T10_APOS_EXECAUTO:lMsErroAuto=[" + cValToChar(lMsErroAuto) + "]"
 
-		// Alterado (30/08/2026, Edison G. Barbieri) - RollBackSX8/ConfirmSX8 e
-		// MostraErro() sem argumentos, na MESMA ordem/estrutura exata do
-		// precedente real RJLOJP02.PRW (linhas 459-473): RollBackSX8() e
-		// DisarmTransaction() ANTES do MostraErro() zero-arg, tudo DENTRO da
-		// transacao - achado real: MostraErro(path,arquivo) como no
-		// ClientePDV.tlpp (CRMA980) voltou vazio aqui (LOJA701), diferente do
-		// precedente que usa a forma sem argumentos.
-		If lMsErroAuto
-			RollBackSX8()
-			DisarmTransaction()
-			cErroVendaPDV := MostraErro()
-			cNumSeq := ""
-		Else
-			ConfirmSX8()
-		EndIf
+			// Alterado (30/08/2026, Edison G. Barbieri) - RollBackSX8/ConfirmSX8 e
+			// MostraErro() sem argumentos, na MESMA ordem/estrutura exata do
+			// precedente real RJLOJP02.PRW (linhas 459-473): RollBackSX8() e
+			// DisarmTransaction() ANTES do MostraErro() zero-arg, tudo DENTRO da
+			// transacao - achado real: MostraErro(path,arquivo) como no
+			// ClientePDV.tlpp (CRMA980) voltou vazio aqui (LOJA701), diferente do
+			// precedente que usa a forma sem argumentos.
+			// DIAGNOSTICO TEMPORARIO (01/09/2026) - REMOVER apos o teste.
+			If lMsErroAuto
+				RollBackSX8()
+				DisarmTransaction()
+				cErroVendaPDV += "|T11_ERRO_AUTO:cNumSeq=[" + cNumSeq + "]LQ_CLIENTE=[" + cValToChar(jCli["codigo"]) + "]LQ_LOJA=[" + cValToChar(jCli["loja"]) + "]LQ_VEND=[" + cVendPad + "]MostraErro=[" + MostraErro() + "]"
+				cNumSeq := ""
+			Else
+				cErroVendaPDV += "|T12_CONFIRMANDO_SX8"
+				ConfirmSX8()
+			EndIf
 
-	End Transaction
+		End Transaction
+	Catch oErroTrans
+		// DIAGNOSTICO TEMPORARIO (01/09/2026) - REMOVER apos o teste. Captura
+		// excecao crua que possa estar escapando do fluxo gracioso lMsErroAuto.
+		cErroVendaPDV += "|T13_EXCECAO_CRUA=[" + oErroTrans:Description + "]"
+		cNumSeq := ""
+	EndTry
 
 	cFilAnt := cFilAntBkp
 
@@ -477,6 +524,7 @@ Static Function GravaPedidoPDV(cVend as Character, cFilVend as Character, jCli a
 	Local cVendPad   := PadR(cVend, TamSX3("A3_COD")[1]) as Character
 	Local nTamProd   := TamSX3("C6_PRODUTO")[1] as Numeric
 	Local jProd      := Nil as Json
+	cErroVendaPDV += "|T4_ENTROU_GRAVAORCPDV"
 	Private lMsErroAuto := .F. as Logical
 	Private lMsHelpAuto  := .T. as Logical
 
